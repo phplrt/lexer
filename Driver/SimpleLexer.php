@@ -9,11 +9,11 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer\Driver;
 
-use Phplrt\Io\Readable;
+use Phplrt\Contracts\Io\Readable;
+use Phplrt\Contracts\Lexer\LexerInterface;
+use Phplrt\Contracts\Lexer\TokenInterface;
 use Phplrt\Lexer\Definition\TokenDefinition;
-use Phplrt\Lexer\LexerInterface;
 use Phplrt\Lexer\SimpleLexerInterface;
-use Phplrt\Lexer\TokenInterface;
 
 /**
  * Class BaseLexer
