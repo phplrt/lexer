@@ -9,8 +9,6 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer;
 
-use Phplrt\Contracts\Lexer\LexerInterface;
-
 /**
  * Interface SimpleLexerInterface
  */
