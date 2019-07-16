@@ -1,6 +1,6 @@
 <?php
 /**
- * This file is part of Phplrt package.
+ * This file is part of phplrt package.
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -55,9 +55,9 @@ abstract class MultistateLexer extends SimpleLexer implements MultistateLexerInt
     public function getTokenDefinitions(): iterable
     {
         foreach ($this->tokens as $name => $pcre) {
-            $keep = ! \in_array($name, $this->skipped, true);
+            $keep  = ! \in_array($name, $this->skipped, true);
             $state = $this->getTokenState($name);
-            $next = $this->getNextState($name);
+            $next  = $this->getNextState($name);
 
             yield new MultistateTokenDefinition($name, $pcre, $keep, $state, $next);
         }

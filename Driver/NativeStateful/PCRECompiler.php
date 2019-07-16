@@ -1,6 +1,6 @@
 <?php
 /**
- * This file is part of Phplrt package.
+ * This file is part of phplrt package.
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -21,8 +21,8 @@ class PCRECompiler
      */
     protected const REGEX_DELIMITER = '/';
 
-    private const FLAG_UNICODE = 'u';
-    private const FLAG_DOT_ALL = 's';
+    private const FLAG_UNICODE  = 'u';
+    private const FLAG_DOT_ALL  = 's';
     private const FLAG_ANALYZED = 'S';
 
     /**
@@ -71,7 +71,7 @@ class PCRECompiler
         $tokensList = [];
 
         foreach ($tokens as $name => $pcre) {
-            $name = $this->escapeTokenName($name);
+            $name  = $this->escapeTokenName($name);
             $value = $this->escapeTokenPattern($pcre);
 
             $tokensList[] = \sprintf('(?P<%s>%s)', \trim($name), $value);

@@ -1,6 +1,6 @@
 <?php
 /**
- * This file is part of Phplrt package.
+ * This file is part of phplrt package.
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -38,8 +38,8 @@ class Token extends BaseToken
      */
     public function __construct(string $name, $value, int $offset = 0)
     {
-        $this->name = $name;
-        $this->value = (array)$value;
+        $this->name   = $name;
+        $this->value  = (array)$value;
         $this->offset = $offset;
     }
 
@@ -52,12 +52,11 @@ class Token extends BaseToken
     }
 
     /**
-     * @param int|null $offset
      * @return string|null
      */
-    public function getValue(int $offset = 0): ?string
+    public function getValue(): string
     {
-        return $this->value[$offset] ?? null;
+        return $this->value[0];
     }
 
     /**

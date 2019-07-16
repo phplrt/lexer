@@ -1,6 +1,6 @@
 <?php
 /**
- * This file is part of Phplrt package.
+ * This file is part of phplrt package.
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -36,7 +36,7 @@ class MultistateTokenDefinition extends TokenDefinition
     public function __construct(string $name, string $pcre, bool $keep = true, int $state = 0, int $nextState = 0)
     {
         parent::__construct($name, $pcre, $keep);
-        $this->state = $state;
+        $this->state     = $state;
         $this->nextState = $nextState;
     }
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * This file is part of Phplrt package.
+ * This file is part of phplrt package.
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -12,14 +12,14 @@ namespace Phplrt\Lexer\Driver;
 use Parle\Lexer as Parle;
 use Parle\LexerException;
 use Parle\Token as InternalToken;
-use Phplrt\Io\Readable;
+use Phplrt\Contracts\Io\Readable;
+use Phplrt\Contracts\Lexer\LexerInterface;
+use Phplrt\Contracts\Lexer\TokenInterface;
 use Phplrt\Lexer\Definition\TokenDefinition;
 use Phplrt\Lexer\Exception\BadLexemeException;
-use Phplrt\Lexer\LexerInterface;
 use Phplrt\Lexer\Token\EndOfInput;
 use Phplrt\Lexer\Token\Token;
 use Phplrt\Lexer\Token\Unknown;
-use Phplrt\Lexer\TokenInterface;
 
 /**
  * Class ParleStateless
@@ -52,7 +52,7 @@ class ParleLexer extends SimpleLexer
     {
         \assert(\class_exists(Parle::class, false));
 
-        $this->lexer = new Parle();
+        $this->lexer   = new Parle();
         $this->skipped = $skip;
 
         foreach ($tokens as $name => $pcre) {
@@ -71,7 +71,7 @@ class ParleLexer extends SimpleLexer
         try {
             $this->lexer->push($pcre, $this->id);
 
-            $this->map[$this->id] = $name;
+            $this->map[$this->id]    = $name;
             $this->tokens[$this->id] = $pcre;
         } catch (LexerException $e) {
             $message = \preg_replace('/rule\h+id\h+\d+/iu', 'token ' . $name, $e->getMessage());
@@ -82,6 +82,18 @@ class ParleLexer extends SimpleLexer
         ++$this->id;
 
         return $this;
+    }
+
+    /**
+     * @return iterable|TokenDefinition[]
+     */
+    public function getTokenDefinitions(): iterable
+    {
+        foreach ($this->tokens as $id => $pcre) {
+            $name = $this->map[$id];
+
+            yield new TokenDefinition($name, $pcre, ! \in_array($name, $this->skipped, true));
+        }
     }
 
     /**
@@ -133,8 +145,8 @@ class ParleLexer extends SimpleLexer
     {
         /** @var InternalToken $current */
         $current = $iterator->current();
-        $offset = $this->lexer->marker;
-        $body = '';
+        $offset  = $this->lexer->marker;
+        $body    = '';
 
         while ($current->id === InternalToken::UNKNOWN) {
             $body .= $current->value;
@@ -157,17 +169,5 @@ class ParleLexer extends SimpleLexer
         $iterator->next();
 
         return new Token($this->map[$current->id], $current->value, $this->lexer->marker);
-    }
-
-    /**
-     * @return iterable|TokenDefinition[]
-     */
-    public function getTokenDefinitions(): iterable
-    {
-        foreach ($this->tokens as $id => $pcre) {
-            $name = $this->map[$id];
-
-            yield new TokenDefinition($name, $pcre, ! \in_array($name, $this->skipped, true));
-        }
     }
 }
