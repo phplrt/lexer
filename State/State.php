@@ -25,21 +25,28 @@ abstract class State implements StateInterface
     protected $skip;
 
     /**
-     * @var array
+     * @var array|string[]
      */
-    protected $jumps;
+    protected $after;
+
+    /**
+     * @var array|string[]
+     */
+    protected $before;
 
     /**
      * State constructor.
      *
      * @param array|string[] $tokens
-     * @param array $skip
-     * @param array $jumps
+     * @param array|string[] $skip
+     * @param array|string[] $after
+     * @param array|string[] $before
      */
-    public function __construct(array $tokens = [], array $skip = [], array $jumps = [])
+    public function __construct(array $tokens = [], array $skip = [], array $after = [], array $before = [])
     {
         $this->tokens = $tokens;
         $this->skip = $skip;
-        $this->jumps = $jumps;
+        $this->after = $after;
+        $this->before = $before;
     }
 }

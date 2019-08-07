@@ -13,7 +13,7 @@ use Phplrt\Lexer\Token\Skip;
 use Phplrt\Lexer\Token\Token;
 use Phplrt\Lexer\Token\Unknown;
 use Phplrt\Contracts\Lexer\TokenInterface;
-use Phplrt\Lexer\Exception\LexerException;
+use Phplrt\Lexer\Exception\CompilationException;
 
 /**
  * Class Markers
@@ -33,31 +33,22 @@ class Markers extends State
     /**
      * @var string
      */
-    private const PATTERN_BODY = self::PATTERN_DELIMITER . '\\G(?|%s)' . self::PATTERN_DELIMITER;
+    private const PATTERN_BODY = '/\\G(?|%s)/Ssu';
 
     /**
      * @var string
      */
-    private const PATTERN_FLAGS = 'Ssu';
+    private const ERROR_PCRE_ORIGINAL_PREFIX = 'preg_match_all(): Compilation failed: ';
 
     /**
-     * @var string|null
+     * @var string
      */
-    private $pattern;
+    private const MARKER = 'MARK';
 
     /**
-     * @return void
+     * @var array|string[]
      */
-    private function assertPCRECompilation(): void
-    {
-        if ($error = \error_get_last()) {
-            $message = \strpos($error['message'], 'preg_match_all(): Compilation failed: ') === 0
-                ? \substr($error['message'], 38)
-                : $error['message'];
-
-            throw new LexerException('PCRE Exception: ' . \ucfirst($message));
-        }
-    }
+    protected $tokens;
 
     /**
      * @param string $source
@@ -66,19 +57,15 @@ class Markers extends State
      */
     public function execute(string $source, int $offset): \Generator
     {
-        $pattern = $this->getPattern();
+        foreach ($this->match($this->getPattern(), $source, $offset) as $payload) {
+            [$id, $value, $offset] = [(int)$payload[self::MARKER], $payload[0][0], $payload[0][1]];
 
-        \error_clear_last();
-
-        @\preg_match_all($pattern, $source, $matches, \PREG_SET_ORDER | \PREG_OFFSET_CAPTURE, $offset);
-
-        $this->assertPCRECompilation();
-
-        foreach ($matches as $payload) {
-            [$id, $value, $offset] = [(int)$payload['MARK'], $payload[0][0], $payload[0][1]];
+            if (isset($this->before[$id])) {
+                return $this->before[$id];
+            }
 
             switch (true) {
-                case $payload['MARK'] === Unknown::NAME:
+                case $payload[self::MARKER] === Unknown::NAME:
                     yield new Unknown($value, $offset);
                     break;
 
@@ -90,9 +77,40 @@ class Markers extends State
                     yield new Token($id, $value, $offset);
             }
 
-            if (isset($this->jumps[$id])) {
-                return $this->jumps[$id];
+            if (isset($this->after[$id])) {
+                return $this->after[$id];
             }
+        }
+    }
+
+    /**
+     * @param string $pattern
+     * @param string $source
+     * @param int $offset
+     * @return array
+     */
+    private function match(string $pattern, string $source, int $offset): array
+    {
+        \error_clear_last();
+
+        @\preg_match_all($pattern, $source, $matches, \PREG_SET_ORDER | \PREG_OFFSET_CAPTURE, $offset);
+
+        $this->assertPCRECompilation();
+
+        return $matches;
+    }
+
+    /**
+     * @return void
+     */
+    private function assertPCRECompilation(): void
+    {
+        if ($error = \error_get_last()) {
+            $message = \strpos($error['message'], self::ERROR_PCRE_ORIGINAL_PREFIX) === 0
+                ? \substr($error['message'], \strlen(self::ERROR_PCRE_ORIGINAL_PREFIX))
+                : $error['message'];
+
+            throw new CompilationException(\ucfirst($message));
         }
     }
 
@@ -115,12 +133,20 @@ class Markers extends State
             $result[] = \sprintf(self::PATTERN_MARKER, $this->pattern($pattern), $this->name($name));
         }
 
-        $result[] = \vsprintf(self::PATTERN_MARKER, [
+        $result[] = $this->unknown();
+
+        return \sprintf(self::PATTERN_BODY, \implode('|', $result));
+    }
+
+    /**
+     * @return string
+     */
+    private function unknown(): string
+    {
+        return \vsprintf(self::PATTERN_MARKER, [
             $this->pattern('.+?'),
             $this->name(Unknown::NAME),
         ]);
-
-        return \sprintf(self::PATTERN_BODY, \implode('|', $result)) . self::PATTERN_FLAGS;
     }
 
     /**

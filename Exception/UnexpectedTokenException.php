@@ -10,8 +10,9 @@ declare(strict_types=1);
 namespace Phplrt\Lexer\Exception;
 
 /**
- * Class UnderflowStackException
+ * Class UnexpectedTokenException
  */
-class UnderflowStackException extends LexerRuntimeException
+class UnexpectedTokenException extends LexerRuntimeException
 {
+
 }

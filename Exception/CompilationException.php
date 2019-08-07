@@ -10,9 +10,8 @@ declare(strict_types=1);
 namespace Phplrt\Lexer\Exception;
 
 /**
- * Class UnrecognizedStateException
+ * Class CompilationException
  */
-class UnrecognizedStateException extends LexerRuntimeException
+class CompilationException extends LexerException
 {
-
 }

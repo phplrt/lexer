@@ -14,7 +14,6 @@ use Phplrt\Exception\SourceException;
 use Phplrt\Contracts\Lexer\TokenInterface;
 use Phplrt\Contracts\Source\ReadableInterface;
 use Phplrt\Contracts\Lexer\Exception\RuntimeExceptionInterface;
-use Phplrt\Contracts\Exception\MutableSourceExceptionInterface;
 use Phplrt\Contracts\Source\Exception\NotReadableExceptionInterface;
 
 /**
