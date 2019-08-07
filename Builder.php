@@ -69,6 +69,24 @@ class Builder implements LexerBuilderInterface
     }
 
     /**
+     * @param \Closure $then
+     * @return Builder|LexerBuilderInterface
+     */
+    public function global(\Closure $then)
+    {
+        return $this->state(static::STATE_GLOBAL, $then);
+    }
+
+    /**
+     * @param \Closure $then
+     * @return Builder|LexerBuilderInterface
+     */
+    public function default(\Closure $then)
+    {
+        return $this->state(static::STATE_DEFAULT, $then);
+    }
+
+    /**
      * @return StateBuilderInterface
      */
     private function createStateBuilder(): StateBuilderInterface

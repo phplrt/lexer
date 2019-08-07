@@ -165,7 +165,7 @@ $php = [
 
 $lexer = (new Builder())
     ->through(ErrorOnUnknown::class)
-    ->state(static function (StateBuilderInterface $builder) {
+    ->default(static function (StateBuilderInterface $builder) {
         $builder
             ->tokens([
                 'T_OPEN_TAG_WITH_ECHO' => '<(\?|%)=',
