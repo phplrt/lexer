@@ -28,7 +28,7 @@ class Printer
     /**
      * @var string
      */
-    private const DEFAULT_FORMAT = '$3offset | $7type | $body ($name) in $src:$line';
+    private const DEFAULT_FORMAT = '$3offset | $7type ($7id) | $body ($name) in $src:$line';
 
     /**
      * @var string
