@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use Phplrt\Source\File;
 use Phplrt\Lexer\Builder;
+use Phplrt\Lexer\Printer;
 use Phplrt\Lexer\Filter\ErrorOnUnknown;
 use Phplrt\Lexer\Builder\StateBuilderInterface;
 
@@ -170,29 +171,23 @@ $php = [
 
 $lexer = (new Builder())
     ->through(ErrorOnUnknown::class)
+    ->token('T_BOM', '\xef\xbb\xbf')->skip('T_BOM')
     ->default(static function (StateBuilderInterface $builder) {
         $builder
-            ->tokens([
-                'T_OPEN_TAG_WITH_ECHO' => '<(\?|%)=',
-                'T_OPEN_TAG'           => '(<\?php|<\?|<%)\s?',
-                'T_INLINE_HTML'        => '.+?'
-            ])
-            ->jump('T_OPEN_TAG_WITH_ECHO', 'php')
-            ->jump('T_OPEN_TAG', 'php')
-            ->jump('T_OPEN_TAG_WITH_ECHO', 'php')
-        ;
+            ->token('T_OPEN_TAG_WITH_ECHO', '<(\?|%)=', 'php')
+            ->token('T_OPEN_TAG', '(<\?php|<\?|<%)\s?', 'php')
+            ->token('T_INLINE_HTML', '.+?', 'php');
     })
     ->state('php', static function (StateBuilderInterface $builder) use ($php) {
         $builder
             ->tokens($php)
             ->token('T_CLOSE_TAG', '\?>|%>', Builder::STATE_DEFAULT)
-            ->skip('T_COMMENT', 'T_DOC_COMMENT', 'T_WHITESPACE')
-        ;
+            ->skip('T_COMMENT', 'T_DOC_COMMENT', 'T_WHITESPACE');
     })
     ->build();
 
 $src = File::fromPathName(__FILE__);
-$printer = new \Phplrt\Lexer\Printer($lexer);
+$printer = new Printer($lexer);
 
 foreach ($lexer->lex($src) as $token) {
     echo $printer->printLine($token, $src);
