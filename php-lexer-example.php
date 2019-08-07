@@ -8,6 +8,11 @@ use Phplrt\Lexer\Builder\StateBuilderInterface;
 
 require __DIR__ . '/vendor/autoload.php';
 
+$heredoc = <<<EXAMPLE
+    test
+EXAMPLE;
+
+
 $php = [
     'T_COMMENT'            => '(//|#)[^\\n]*\n',
     'T_DOC_COMMENT'        => '/\\*.*?\\*/',
@@ -182,19 +187,7 @@ $lexer = (new Builder())
             ->tokens($php)
             ->token('T_CLOSE_TAG', '\?>|%>', Builder::STATE_DEFAULT)
             ->skip('T_COMMENT', 'T_DOC_COMMENT', 'T_WHITESPACE')
-            //->jump('T_HEREDOC', 'heredoc')
-            //->jump('T_NOWDOC', 'nowdoc')
-            //->jump('T_INTERPOLATE_STRING', 'interpolate')
         ;
-    })
-    ->state('heredoc', static function (StateBuilderInterface $builder) {
-        // $builder->
-    })
-    ->state('nowdoc', static function (StateBuilderInterface $builder) {
-        // $builder->
-    })
-    ->state('interpolate', static function (StateBuilderInterface $builder) {
-        // $builder->
     })
     ->build();
 

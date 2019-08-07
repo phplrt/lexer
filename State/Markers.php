@@ -13,6 +13,7 @@ use Phplrt\Lexer\Token\Skip;
 use Phplrt\Lexer\Token\Token;
 use Phplrt\Lexer\Token\Unknown;
 use Phplrt\Contracts\Lexer\TokenInterface;
+use Phplrt\Lexer\Exception\LexerException;
 
 /**
  * Class Markers
@@ -45,6 +46,20 @@ class Markers extends State
     private $pattern;
 
     /**
+     * @return void
+     */
+    private function assertPCRECompilation(): void
+    {
+        if ($error = \error_get_last()) {
+            $message = \strpos($error['message'], 'preg_match_all(): Compilation failed: ') === 0
+                ? \substr($error['message'], 38)
+                : $error['message'];
+
+            throw new LexerException('PCRE Exception: ' . \ucfirst($message));
+        }
+    }
+
+    /**
      * @param string $source
      * @param int $offset
      * @return \Generator|TokenInterface[]|string
@@ -53,7 +68,11 @@ class Markers extends State
     {
         $pattern = $this->getPattern();
 
-        \preg_match_all($pattern, $source, $matches, \PREG_SET_ORDER | \PREG_OFFSET_CAPTURE, $offset);
+        \error_clear_last();
+
+        @\preg_match_all($pattern, $source, $matches, \PREG_SET_ORDER | \PREG_OFFSET_CAPTURE, $offset);
+
+        $this->assertPCRECompilation();
 
         foreach ($matches as $payload) {
             [$id, $value, $offset] = [(int)$payload['MARK'], $payload[0][0], $payload[0][1]];
