@@ -204,7 +204,7 @@ class Lexer implements LexerInterface
              * The label expression used to reduce recursive invocation, like:
              *
              * <code>
-             *  yield from $this->execute($state, $content, $offset);
+             *  yield from $this->execute($src, $state, $content, $offset);
              * </code>
              *
              * In this case, the call stack remains unchanged and cannot be
