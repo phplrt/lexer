@@ -45,9 +45,6 @@
     "provide": {
         "phplrt/lexer-contracts-implementation": "2.0.0"
     },
-    "suggest": {
-        "ext-parle": "Parle extension fallback"
-    },
     "extra": {
         "branch-alias": {
             "dev-master": "2.0.x-dev"

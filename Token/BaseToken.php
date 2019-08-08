@@ -17,6 +17,24 @@ use Phplrt\Contracts\Lexer\TokenInterface;
 abstract class BaseToken implements TokenInterface
 {
     /**
+     * @var int
+     */
+    protected const TO_STRING_VALUE_LENGTH = 30;
+
+    /**
+     * @var string
+     */
+    protected const TO_STRING_VALUE_WRAP = '"%s"';
+
+    /**
+     * @var string
+     */
+    protected const TO_STRING_SPECIAL_CHARS = [
+        ["\0", "\n", "\t"],
+        ['\0', '\n', '\t'],
+    ];
+
+    /**
      * @var int|null
      */
     private $bytes;
@@ -47,6 +65,35 @@ abstract class BaseToken implements TokenInterface
      */
     public function __toString(): string
     {
-        return $this->getValue();
+        $value = $this->getEscapedValue();
+
+        if (\mb_strlen($value) > static::TO_STRING_VALUE_LENGTH + 5) {
+            $suffix = \sprintf(' (%s+)', \mb_strlen($value) - static::TO_STRING_VALUE_LENGTH);
+            $prefix = \sprintf(static::TO_STRING_VALUE_WRAP, \mb_substr($value, 0, static::TO_STRING_VALUE_LENGTH) . '…');
+
+            return $this->replaceSpecialChars($prefix . $suffix);
+        }
+
+        return $this->replaceSpecialChars(\sprintf(static::TO_STRING_VALUE_WRAP, $value));
+    }
+
+    /**
+     * @param string $value
+     * @return string
+     */
+    private function replaceSpecialChars(string $value): string
+    {
+        return \str_replace(static::TO_STRING_SPECIAL_CHARS[0], static::TO_STRING_SPECIAL_CHARS[1], $value);
+    }
+
+    /**
+     * @return string
+     */
+    private function getEscapedValue(): string
+    {
+        $value = $this->getValue();
+        $value = (string)(\preg_replace('/\h+/u', ' ', $value) ?? $value);
+
+        return \addcslashes($value, '"');
     }
 }

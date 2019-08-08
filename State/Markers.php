@@ -33,7 +33,7 @@ class Markers extends State
     /**
      * @var string
      */
-    private const PATTERN_BODY = '/\\G(?|%s)/Ssu';
+    private const PATTERN_BODY = '/\\G(?|%s)/Ssum';
 
     /**
      * @var string
@@ -46,9 +46,9 @@ class Markers extends State
     private const MARKER = 'MARK';
 
     /**
-     * @var array|string[]
+     * @var string|null
      */
-    protected $tokens;
+    private $pattern;
 
     /**
      * @param string $source
@@ -58,28 +58,38 @@ class Markers extends State
     public function execute(string $source, int $offset): \Generator
     {
         foreach ($this->match($this->getPattern(), $source, $offset) as $payload) {
-            [$id, $value, $offset] = [(int)$payload[self::MARKER], $payload[0][0], $payload[0][1]];
+            $id = (int)$payload[self::MARKER];
 
             if (isset($this->before[$id])) {
                 return $this->before[$id];
             }
 
-            switch (true) {
-                case $payload[self::MARKER] === Unknown::NAME:
-                    yield new Unknown($value, $offset);
-                    break;
-
-                case \in_array($id, $this->skip, true):
-                    yield new Skip($value, $offset);
-                    break;
-
-                default:
-                    yield new Token($id, $value, $offset);
-            }
+            yield $this->make($payload, $id);
 
             if (isset($this->after[$id])) {
                 return $this->after[$id];
             }
+        }
+    }
+
+    /**
+     * @param array $payload
+     * @param int $id
+     * @return TokenInterface
+     */
+    private function make(array $payload, int $id): TokenInterface
+    {
+        [$value, $offset] = $payload[0];
+
+        switch (true) {
+            case $payload[self::MARKER] === Unknown::NAME:
+                return new Unknown($value, $offset);
+
+            case \in_array($id, $this->skip, true):
+                return new Skip($value, $offset);
+
+            default:
+                return new Token($id, $value, $offset);
         }
     }
 
