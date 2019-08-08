@@ -27,7 +27,6 @@
         "ext-spl": "*",
         "ext-pcre": "*",
         "ext-mbstring": "*",
-        "psr/log": "~1.1",
         "symfony/polyfill-php73": "~1.0",
         "phplrt/lexer-contracts": "~2.0|2.0.x-dev",
         "phplrt/exception": "~2.0|2.0.x-dev",
