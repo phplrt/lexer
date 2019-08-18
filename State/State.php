@@ -20,9 +20,9 @@ abstract class State implements StateInterface
     protected $tokens;
 
     /**
-     * @var array|int[]
+     * @var array|string[]
      */
-    protected $overrides;
+    protected $skip;
 
     /**
      * @var array|string[]
@@ -38,14 +38,14 @@ abstract class State implements StateInterface
      * State constructor.
      *
      * @param array|string[] $tokens
-     * @param array|string[] $overrides
+     * @param array|string[] $skip
      * @param array|string[] $after
      * @param array|string[] $before
      */
-    public function __construct(array $tokens, array $overrides = [], array $after = [], array $before = [])
+    public function __construct(array $tokens, array $skip = [], array $after = [], array $before = [])
     {
         $this->tokens = $tokens;
-        $this->overrides = $overrides;
+        $this->skip = $skip;
         $this->after = $after;
         $this->before = $before;
     }
