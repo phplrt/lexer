@@ -27,10 +27,7 @@
         "ext-spl": "*",
         "ext-pcre": "*",
         "ext-mbstring": "*",
-        "symfony/polyfill-php73": "~1.0",
-        "phplrt/lexer-contracts": "~2.0|2.0.x-dev",
-        "phplrt/exception": "~2.0|2.0.x-dev",
-        "phplrt/source": "~2.0|2.0.x-dev"
+        "phplrt/lexer-contracts": "~2.0"
     },
     "autoload": {
         "psr-4": {
@@ -42,7 +39,7 @@
         "monolog/monolog": "~1.24"
     },
     "provide": {
-        "phplrt/lexer-contracts-implementation": "2.0.0"
+        "phplrt/lexer-contracts-implementation": "~2.0"
     },
     "extra": {
         "branch-alias": {

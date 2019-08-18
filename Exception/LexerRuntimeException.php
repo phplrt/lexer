@@ -9,54 +9,37 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer\Exception;
 
-use Phplrt\Lexer\Token\BaseToken;
-use Phplrt\Exception\SourceException;
 use Phplrt\Contracts\Lexer\TokenInterface;
-use Phplrt\Contracts\Source\ReadableInterface;
 use Phplrt\Contracts\Lexer\Exception\RuntimeExceptionInterface;
-use Phplrt\Contracts\Source\Exception\NotReadableExceptionInterface;
 
 /**
  * Class LexerException
  */
-class LexerRuntimeException extends SourceException implements RuntimeExceptionInterface
+class LexerRuntimeException extends LexerException implements RuntimeExceptionInterface
 {
     /**
-     * @var TokenInterface|null
+     * @var TokenInterface
      */
     private $token;
 
     /**
-     * @param ReadableInterface $source
+     * LexerRuntimeException constructor.
+     *
+     * @param string $message
      * @param TokenInterface $token
-     * @return LexerRuntimeException|$this
-     * @throws NotReadableExceptionInterface
+     * @param \Throwable|null $prev
      */
-    public function onToken(ReadableInterface $source, TokenInterface $token): self
+    public function __construct(string $message, TokenInterface $token, \Throwable $prev = null)
     {
-        return $this->withToken($token)->throwsIn($source, $token->getOffset());
-    }
-
-    /**
-     * @param TokenInterface|null $token
-     * @return LexerRuntimeException|$this
-     */
-    public function withToken(?TokenInterface $token): self
-    {
+        parent::__construct($message, 0, $prev);
         $this->token = $token;
-
-        return $this;
     }
 
     /**
-     * @return TokenInterface|BaseToken
+     * {@inheritDoc}
      */
     public function getToken(): TokenInterface
     {
-        if ($this->token === null) {
-            throw new \LogicException(\sprintf('Can not call %s. Token not define', __METHOD__));
-        }
-
         return $this->token;
     }
 }

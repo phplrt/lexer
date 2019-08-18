@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer;
 
-use Phplrt\Lexer\Token\Skip;
+use Phplrt\Lexer\Token\Token;
 use Phplrt\Lexer\Token\Unknown;
 use Phplrt\Lexer\State\Markers;
 use Phplrt\Lexer\Token\BaseToken;
@@ -17,12 +17,11 @@ use Phplrt\Lexer\Token\EndOfInput;
 use Phplrt\Lexer\State\StateInterface;
 use Phplrt\Contracts\Lexer\TokenInterface;
 use Phplrt\Lexer\Exception\LexerException;
-use Phplrt\Contracts\Source\ReadableInterface;
+use Phplrt\Contracts\Lexer\LexerInterface;
 use Phplrt\Lexer\Exception\LexerRuntimeException;
-use Phplrt\Lexer\Exception\UnexpectedTokenException;
+use Phplrt\Lexer\Exception\UnrecognizedTokenException;
 use Phplrt\Lexer\Exception\UnexpectedStateException;
 use Phplrt\Lexer\Exception\EndlessRecursionException;
-use Phplrt\Contracts\Source\Exception\NotReadableExceptionInterface;
 
 /**
  * Class Lexer
@@ -42,12 +41,12 @@ class Lexer implements LexerInterface
     /**
      * @var string
      */
-    private const ERROR_UNEXPECTED_TOKEN = 'Syntax error, unexpected %s (%s)';
+    private const ERROR_UNRECOGNIZED_TOKEN = 'Syntax error, unrecognized %s ';
 
     /**
      * @var string
      */
-    private const ERROR_ENDLESS_TRANSITIONS = 'An unsolvable infinite lexer state transitions was found %s';
+    private const ERROR_ENDLESS_TRANSITIONS = 'An unsolvable infinite lexer state transitions was found at %s';
 
     /**
      * @var string
@@ -65,28 +64,24 @@ class Lexer implements LexerInterface
     protected $states = [];
 
     /**
-     * @var array|string[]
-     */
-    protected $tokens = [];
-
-    /**
      * @var string|int|null
      */
     protected $initial;
 
     /**
+     * @var TokenInterface|null
+     */
+    private $last;
+
+    /**
      * Lexer constructor.
      *
      * @param array|StateInterface[]|array[] $states
-     * @param array|string[] $tokens
      * @param null|string|int $initial
      */
-    public function __construct(array $states = [], array $tokens = [], $initial = null)
+    public function __construct(array $states = [], $initial = null)
     {
         $this->initial = $initial ?? $this->initial;
-
-        /** @noinspection AdditionOperationOnArraysInspection */
-        $this->tokens += $tokens;
 
         /** @noinspection AdditionOperationOnArraysInspection */
         $this->states = $this->bootStates($this->states += $states);
@@ -101,7 +96,11 @@ class Lexer implements LexerInterface
         $result = [];
 
         foreach ($states as $id => $data) {
-            $result[$id] = $this->createState($data, $id);
+            if (\is_string($data)) {
+                return [new Markers($states)];
+            }
+
+            $result[$id] = $this->bootState($data, $id);
         }
 
         if (\count($result) === 0) {
@@ -112,23 +111,42 @@ class Lexer implements LexerInterface
     }
 
     /**
-     * @param mixed $payload
-     * @param $id
+     * @param mixed ...$args
      * @return StateInterface
      */
-    private function createState($payload, $id): StateInterface
+    protected function createDriver(...$args): StateInterface
     {
         $driver = self::DEFAULT_STATE_DRIVER;
 
+        return new $driver(...$args);
+    }
+
+    /**
+     * @param mixed $payload
+     * @param mixed $id
+     * @return StateInterface
+     */
+    private function bootState($payload, $id): StateInterface
+    {
         switch (true) {
             case $payload instanceof StateInterface:
                 return $payload;
 
             case \is_array($payload):
-                return new $driver(...\array_values($payload));
+                /** @noinspection LoopWhichDoesNotLoopInspection */
+                foreach ($payload as $value) {
+                    if (! \is_string($value)) {
+                        break;
+                    }
+
+                    return $this->createDriver($payload);
+                }
+
+                return $this->createDriver(...\array_values($payload));
 
             default:
                 $message = \sprintf(self::ERROR_STATE_DATA, $id, StateInterface::class, \gettype($payload));
+
                 throw new LexerException($message);
         }
     }
@@ -136,57 +154,52 @@ class Lexer implements LexerInterface
     /**
      * {@inheritDoc}
      *
-     * @param ReadableInterface $source
+     * @param string|resource $source
      * @return TokenInterface[]|BaseToken[]
      * @throws LexerException
-     * @throws NotReadableExceptionInterface
+     * @throws LexerRuntimeException
      */
-    public function lex(ReadableInterface $source): iterable
+    public function lex($source): iterable
     {
-        $stream = $this->execute($source, $this->getInitialStateIdentifier(), $source->getContents());
+        $stream = $this->execute($this->read($source), $this->getInitialStateIdentifier());
 
         while ($stream->valid()) {
-            try {
-                /** @var TokenInterface $token */
-                $token = $stream->current();
+            /** @var TokenInterface $token */
+            $this->last = $token = $stream->current();
 
-                if ($token->getType() === Unknown::ID) {
-                    throw $this->unexpectedTokenException($source, $token);
-                }
-
-                yield $token;
-
-                $stream->next();
-            } catch (LexerRuntimeException $exception) {
-                throw $exception->onToken($source, $token);
+            if ($token->getType() === Unknown::ID) {
+                $message = \sprintf(self::ERROR_UNRECOGNIZED_TOKEN, $token);
+                throw new UnrecognizedTokenException($message, $token);
             }
+
+            yield $token;
+
+            $stream->next();
         }
 
         yield new EndOfInput(isset($token) ? $token->getOffset() + $token->getBytes() : 0);
     }
 
     /**
-     * @return int|mixed|string
+     * @return TokenInterface
      */
-    private function getInitialStateIdentifier()
+    private function getToken(): TokenInterface
     {
-        if ($this->initial !== null && isset($this->states[$this->initial])) {
-            return $this->initial;
+        if ($this->last === null) {
+            return new Token(TokenInterface::TYPE_SKIP, '', 0);
         }
 
-        return \array_key_first($this->states);
+        return $this->last;
     }
 
     /**
-     * @param ReadableInterface $src
-     * @param int $state
      * @param string $content
+     * @param int $state
      * @param int $offset
      * @return \Generator|TokenInterface[]
-     * @throws NotReadableExceptionInterface
      * @throws LexerRuntimeException
      */
-    private function execute(ReadableInterface $src, int $state, string $content, int $offset = 0): \Generator
+    private function execute(string $content, int $state, int $offset = 0): \Generator
     {
         /**
          * We save the offset for the state to prevent endless transitions
@@ -200,7 +213,8 @@ class Lexer implements LexerInterface
          * Checking the existence of the current state.
          */
         if (! isset($this->states[$state])) {
-            throw $this->unexpectedStateException($src, $state, $offset);
+            $message = \sprintf(self::ERROR_UNEXPECTED_STATE, $state);
+            throw new UnexpectedStateException($message, $this->getToken());
         }
 
         /**
@@ -226,14 +240,8 @@ class Lexer implements LexerInterface
              * then at this stage there was an entrance to an endless cycle.
              */
             if (($states[$state] ?? null) === $offset) {
-                $exception = $this->endlessTransitionsException($offset, $token ?? null);
-                $exception->throwsIn($src, $offset);
-
-                if (isset($token)) {
-                    $exception->onToken($src, $token);
-                }
-
-                throw $exception;
+                $message = \sprintf(self::ERROR_ENDLESS_TRANSITIONS, $this->getToken());
+                throw new EndlessRecursionException($message, $this->getToken());
             }
 
             $states[$state] = $offset;
@@ -263,78 +271,34 @@ class Lexer implements LexerInterface
     }
 
     /**
-     * An error that occurs when the required state was not found.
-     *
-     * @param ReadableInterface $src
-     * @param int $state
-     * @param int $offset
-     * @return UnexpectedStateException
-     * @throws NotReadableExceptionInterface
-     */
-    private function unexpectedStateException(ReadableInterface $src, int $state, int $offset): UnexpectedStateException
-    {
-        $exception = new UnexpectedStateException(\sprintf(self::ERROR_UNEXPECTED_STATE, $state));
-        $exception->throwsIn($src, $offset);
-
-        return $exception;
-    }
-
-    /**
-     * An error that occurs when an infinite set of state transitions is detected.
-     *
-     * @param int $offset
-     * @param TokenInterface|null $token
-     * @return EndlessRecursionException
-     */
-    private function endlessTransitionsException(int $offset, TokenInterface $token = null): EndlessRecursionException
-    {
-        switch (true) {
-            case $offset === 0:
-                $message = 'at start of the source data';
-                break;
-
-            case $token !== null:
-                $message = \sprintf('near %s (%s)', $token, $this->nameOf($token->getType()));
-                break;
-
-            default:
-                $message = '';
-        }
-
-        return new EndlessRecursionException(\sprintf(self::ERROR_ENDLESS_TRANSITIONS, $message));
-    }
-
-    /**
-     * @param int $token
+     * @param string|resource $source
      * @return string
      */
-    public function nameOf(int $token): string
+    private function read($source): string
     {
-        switch ($token) {
-            case Skip::ID:
-                return Skip::NAME;
+        \assert(\is_string($source) || \is_resource($source));
 
-            case EndOfInput::ID;
-                return EndOfInput::NAME;
-
-            default:
-                return $this->tokens[$token] ?? Unknown::NAME;
+        if (\is_resource($source)) {
+            return \stream_get_contents($source);
         }
+
+        return $source;
     }
 
     /**
-     * @param ReadableInterface $src
-     * @param TokenInterface $token
-     * @return UnexpectedTokenException
-     * @throws NotReadableExceptionInterface
+     * @return int|mixed|string
      */
-    private function unexpectedTokenException(ReadableInterface $src, TokenInterface $token): UnexpectedTokenException
+    private function getInitialStateIdentifier()
     {
-        $message = \sprintf(self::ERROR_UNEXPECTED_TOKEN, $token, $this->nameOf($token->getType()));
+        if ($this->initial !== null && isset($this->states[$this->initial])) {
+            return $this->initial;
+        }
 
-        $exception = new UnexpectedTokenException($message);
-        $exception->onToken($src, $token);
+        /** @noinspection LoopWhichDoesNotLoopInspection */
+        foreach ($this->states as $key => $state) {
+            return $key;
+        }
 
-        return $exception;
+        throw new LexerException(self::ERROR_EMPTY_STATES);
     }
 }
