@@ -79,7 +79,7 @@ class Lexer implements LexerInterface
      * @param array|StateInterface[]|array[] $states
      * @param null|string|int $initial
      */
-    public function __construct(array $states = [], $initial = null)
+    public function __construct(array $states, $initial = null)
     {
         $this->initial = $initial ?? $this->initial;
 

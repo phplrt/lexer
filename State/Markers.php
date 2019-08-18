@@ -85,8 +85,10 @@ class Markers extends State
             case $payload[self::MARKER] === Unknown::NAME:
                 return new Unknown($value, $offset);
 
-            case \in_array($id, $this->skip, true):
-                return new Skip($value, $offset);
+            case isset($this->overrides[$id]) && \array_key_exists($id, $this->overrides):
+                return ($override = $this->overrides[$id]) === TokenInterface::TYPE_SKIP
+                    ? new Skip($value, $offset)
+                    : new Token($override, $value, $offset);
 
             default:
                 return new Token($id, $value, $offset);
