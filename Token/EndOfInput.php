@@ -75,4 +75,12 @@ class EndOfInput extends BaseToken
     {
         return null;
     }
+
+    /**
+     * @return string
+     */
+    public function __toString(): string
+    {
+        return 'end of input';
+    }
 }
