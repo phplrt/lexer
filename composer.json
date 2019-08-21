@@ -1,7 +1,7 @@
 {
     "name": "phplrt/lexer",
     "type": "library",
-    "description": "The phplrt Lexer package.",
+    "description": "The phplrt lexer library that can be used for scanners implementation using PCRE",
     "license": "MIT",
     "keywords": [
         "regex",
@@ -9,6 +9,7 @@
         "token",
         "stream",
         "parsing",
+        "scanner",
         "tokenizer"
     ],
     "homepage": "https://github.com/phplrt",
