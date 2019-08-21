@@ -19,9 +19,9 @@ use Phplrt\Contracts\Lexer\TokenInterface;
 use Phplrt\Lexer\Exception\LexerException;
 use Phplrt\Contracts\Lexer\LexerInterface;
 use Phplrt\Lexer\Exception\LexerRuntimeException;
-use Phplrt\Lexer\Exception\UnrecognizedTokenException;
 use Phplrt\Lexer\Exception\UnexpectedStateException;
 use Phplrt\Lexer\Exception\EndlessRecursionException;
+use Phplrt\Lexer\Exception\UnrecognizedTokenException;
 
 /**
  * Class AbstractLexer
@@ -57,6 +57,11 @@ abstract class AbstractLexer implements LexerInterface
      * @var string
      */
     private const ERROR_STATE_DATA = 'Lexer state #%s data should be an array or instance of %s, but %s given';
+
+    /**
+     * @var string
+     */
+    private const ERROR_ARGUMENT_TYPE = 'A $source argument should be a resource or string type, but %s given';
 
     /**
      * @var array|StateInterface[]
@@ -106,17 +111,6 @@ abstract class AbstractLexer implements LexerInterface
     }
 
     /**
-     * @param mixed ...$args
-     * @return StateInterface
-     */
-    protected function createDriver(...$args): StateInterface
-    {
-        $driver = self::DEFAULT_STATE_DRIVER;
-
-        return new $driver(...$args);
-    }
-
-    /**
      * @param mixed $payload
      * @param mixed $id
      * @return StateInterface
@@ -147,6 +141,17 @@ abstract class AbstractLexer implements LexerInterface
     }
 
     /**
+     * @param mixed ...$args
+     * @return StateInterface
+     */
+    protected function createDriver(...$args): StateInterface
+    {
+        $driver = self::DEFAULT_STATE_DRIVER;
+
+        return new $driver(...$args);
+    }
+
+    /**
      * {@inheritDoc}
      *
      * @param string|resource $source
@@ -173,18 +178,6 @@ abstract class AbstractLexer implements LexerInterface
         }
 
         yield new EndOfInput(isset($token) ? $token->getOffset() + $token->getBytes() : 0);
-    }
-
-    /**
-     * @return TokenInterface
-     */
-    private function getToken(): TokenInterface
-    {
-        if ($this->last === null) {
-            return new Token(TokenInterface::TYPE_SKIP, '', 0);
-        }
-
-        return $this->last;
     }
 
     /**
@@ -266,18 +259,33 @@ abstract class AbstractLexer implements LexerInterface
     }
 
     /**
+     * @return TokenInterface
+     */
+    private function getToken(): TokenInterface
+    {
+        if ($this->last === null) {
+            return new Token(TokenInterface::TYPE_SKIP, '', 0);
+        }
+
+        return $this->last;
+    }
+
+    /**
      * @param string|resource $source
      * @return string
      */
     private function read($source): string
     {
-        \assert(\is_string($source) || \is_resource($source));
+        switch (true) {
+            case \is_resource($source):
+                return \stream_get_contents($source);
 
-        if (\is_resource($source)) {
-            return \stream_get_contents($source);
+            case \is_string($source):
+                return $source;
+
+            default:
+                throw new \TypeError(\sprintf(self::ERROR_ARGUMENT_TYPE, \gettype($source)));
         }
-
-        return $source;
     }
 
     /**
