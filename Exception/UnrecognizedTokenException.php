@@ -9,11 +9,10 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer\Exception;
 
-use Phplrt\Contracts\Lexer\Exception\LexerExceptionInterface;
-
 /**
- * Class LexerException
+ * Class UnrecognizedTokenException
  */
-class LexerException extends \LogicException implements LexerExceptionInterface
+class UnrecognizedTokenException extends LexerRuntimeException
 {
+
 }

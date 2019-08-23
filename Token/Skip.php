@@ -10,19 +10,19 @@ declare(strict_types=1);
 namespace Phplrt\Lexer\Token;
 
 /**
- * Class Unknown
+ * Class Skip
  */
-class Unknown extends BaseToken
+class Skip extends BaseToken
 {
     /**
      * @var int
      */
-    public const ID = self::TYPE_UNKNOWN;
+    public const ID = self::TYPE_SKIP;
 
     /**
      * @var string
      */
-    public const NAME = 'T_UNKNOWN';
+    public const NAME = 'T_SKIP';
 
     /**
      * @var string
