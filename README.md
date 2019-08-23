@@ -120,7 +120,7 @@ $lexer = new Phplrt\Lexer\Lexer([
 
 ### Multistate Lookaheads
 
-transition to different states with lukahed
+Transition to different states with lookahead
 
 ```php
 <?php
