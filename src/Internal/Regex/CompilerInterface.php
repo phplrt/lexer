@@ -13,7 +13,7 @@ namespace Phplrt\Lexer\Internal\Regex;
 
 /**
  * @internal CompilerInterface is an internal library interface, please do not use it in your code.
- * @psalm-internal Phplrt\Lexer
+ * @psalm-internal Phplrt\lexer
  */
 interface CompilerInterface
 {

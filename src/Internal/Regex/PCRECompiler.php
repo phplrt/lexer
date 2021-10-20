@@ -15,7 +15,7 @@ use Phplrt\Lexer\Exception\CompilationException;
 
 /**
  * @internal PCRECompiler is an internal library class, please do not use it in your code.
- * @psalm-internal Phplrt\Lexer
+ * @psalm-internal Phplrt\lexer
  *
  * @psalm-import-type FlagType from Flag
  */

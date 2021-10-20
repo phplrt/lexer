@@ -13,7 +13,7 @@ namespace Phplrt\Lexer\Internal\Regex;
 
 /**
  * @internal Flag is an internal library class, please do not use it in your code.
- * @psalm-internal Phplrt\Lexer
+ * @psalm-internal Phplrt\lexer
  *
  * @psalm-type FlagType = Flag::FLAG_*
  */

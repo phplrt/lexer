@@ -13,7 +13,7 @@ namespace Phplrt\Lexer\Internal\Regex;
 
 /**
  * @internal MarkersCompiler is an internal library class, please do not use it in your code.
- * @psalm-internal Phplrt\Lexer
+ * @psalm-internal Phplrt\lexer
  */
 final class MarkersCompiler extends PCRECompiler
 {
