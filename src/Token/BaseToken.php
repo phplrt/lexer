@@ -1,12 +1,5 @@
 <?php
 
-/**
- * This file is part of phplrt package.
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 declare(strict_types=1);
 
 namespace Phplrt\Lexer\Token;
@@ -32,9 +25,6 @@ abstract class BaseToken implements TokenInterface, \JsonSerializable
         ];
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function getBytes(): int
     {
         return $this->bytes ?? $this->bytes = \strlen($this->getValue());

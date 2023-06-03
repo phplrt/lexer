@@ -1,12 +1,5 @@
 <?php
 
-/**
- * This file is part of phplrt package.
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 declare(strict_types=1);
 
 namespace Phplrt\Lexer;
@@ -26,12 +19,12 @@ class Lexer implements LexerInterface, MutableLexerInterface
     /**
      * @var array<non-empty-string, non-empty-string>
      */
-    protected array $tokens;
+    protected array $tokens = [];
 
     /**
      * @var array<non-empty-string>
      */
-    protected array $skip;
+    protected array $skip = [];
 
     /**
      * @var DriverInterface
@@ -82,9 +75,6 @@ class Lexer implements LexerInterface, MutableLexerInterface
         return $this;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function skip(string ...$tokens): self
     {
         $this->skip = \array_merge($this->skip, $tokens);
@@ -92,9 +82,6 @@ class Lexer implements LexerInterface, MutableLexerInterface
         return $this;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function append(string $token, string $pattern): self
     {
         $this->reset();
@@ -111,9 +98,6 @@ class Lexer implements LexerInterface, MutableLexerInterface
         $this->driver->reset();
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function appendMany(array $tokens): self
     {
         $this->reset();
@@ -122,9 +106,6 @@ class Lexer implements LexerInterface, MutableLexerInterface
         return $this;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function prepend(string $token, string $pattern): self
     {
         $this->reset();
@@ -133,9 +114,6 @@ class Lexer implements LexerInterface, MutableLexerInterface
         return $this;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function prependMany(array $tokens, bool $reverseOrder = false): self
     {
         $this->reset();
@@ -144,9 +122,6 @@ class Lexer implements LexerInterface, MutableLexerInterface
         return $this;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function remove(string ...$tokens): self
     {
         $this->reset();
@@ -154,7 +129,7 @@ class Lexer implements LexerInterface, MutableLexerInterface
         foreach ($tokens as $token) {
             unset($this->tokens[$token]);
 
-            $this->skip = \array_filter($this->skip, static fn(string $haystack): bool => $haystack !== $token);
+            $this->skip = \array_filter($this->skip, static fn (string $haystack): bool => $haystack !== $token);
         }
 
         return $this;
