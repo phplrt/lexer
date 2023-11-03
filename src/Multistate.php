@@ -109,7 +109,6 @@ class Multistate implements LexerInterface
     }
 
     /**
-     * @param ReadableInterface $source
      * @param int<0, max> $offset
      * @return iterable<TokenInterface>
      * @throws RuntimeExceptionInterface
@@ -142,7 +141,7 @@ class Multistate implements LexerInterface
             /**
              * Checking the existence of the current state.
              */
-            if (! isset($this->states[$state])) {
+            if (!isset($this->states[$state])) {
                 /**
                  * @noinspection IssetArgumentExistenceInspection
                  * @psalm-suppress UndefinedVariable
