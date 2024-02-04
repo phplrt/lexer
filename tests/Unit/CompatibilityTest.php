@@ -23,7 +23,7 @@ class CompatibilityTest extends TestCase
     {
         self::expectNotToPerformAssertions();
 
-        new class implements MutableLexerInterface {
+        new class () implements MutableLexerInterface {
             public function append(string $token, string $pattern): MutableLexerInterface {}
             public function appendMany(array $tokens): MutableLexerInterface {}
             public function prepend(string $token, string $pattern): MutableLexerInterface {}
@@ -37,7 +37,7 @@ class CompatibilityTest extends TestCase
     {
         self::expectNotToPerformAssertions();
 
-        new class implements CompositeTokenInterface {
+        new class () implements CompositeTokenInterface {
             public function getIterator(): \Traversable {}
 
             public function offsetExists(mixed $offset): bool {}
@@ -57,14 +57,14 @@ class CompatibilityTest extends TestCase
     {
         self::expectNotToPerformAssertions();
 
-        new class extends \Exception implements LexerExceptionInterface {};
+        new class () extends \Exception implements LexerExceptionInterface {};
     }
 
     public function testDriverCompatibility(): void
     {
         self::expectNotToPerformAssertions();
 
-        new class implements DriverInterface {
+        new class () implements DriverInterface {
             public function run(array $tokens, ReadableInterface $source, int $offset = 0): iterable {}
             public function reset(): void {}
         };
@@ -74,7 +74,7 @@ class CompatibilityTest extends TestCase
     {
         self::expectNotToPerformAssertions();
 
-        new class implements CompilerInterface {
+        new class () implements CompilerInterface {
             public function compile(array $tokens): string {}
         };
     }
