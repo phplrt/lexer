@@ -30,7 +30,7 @@ class Multistate implements LexerInterface
     private array $transitions = [];
 
     /**
-     * @param array<non-empty-string|int<0, max>, LexerInterface> $states
+     * @param array<non-empty-string|int<0, max>, array<non-empty-string, non-empty-string>|LexerInterface> $states
      * @param array<non-empty-string|int<0, max>, array<non-empty-string, non-empty-string|int<0, max>>> $transitions
      * @param int<0, max>|non-empty-string|null $state
      */

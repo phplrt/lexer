@@ -2,18 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Phplrt\Lexer\Tests;
+namespace Phplrt\Lexer\Tests\Functional;
 
 use Phplrt\Contracts\Exception\RuntimeExceptionInterface;
 use Phplrt\Contracts\Lexer\TokenInterface;
 use Phplrt\Lexer\Exception\UnexpectedStateException;
 use Phplrt\Lexer\Lexer;
 use Phplrt\Lexer\Multistate;
+use PHPUnit\Framework\Attributes\Group;
 
-class MultistateLexerTestCase extends TestCase
+#[Group('phplrt/lexer'), Group('functional')]
+class MultistateLexerTest extends TestCase
 {
     /**
-     * @return void
      * @throws RuntimeExceptionInterface
      */
     public function testNoStatesError(): void
@@ -25,7 +26,6 @@ class MultistateLexerTestCase extends TestCase
     }
 
     /**
-     * @return void
      * @throws RuntimeExceptionInterface
      */
     public function testUnknownStateTransitionError(): void
@@ -42,7 +42,6 @@ class MultistateLexerTestCase extends TestCase
     }
 
     /**
-     * @return void
      * @throws RuntimeExceptionInterface
      */
     public function testUnknownInitialStateError(): void
