@@ -16,16 +16,6 @@ use Phplrt\Lexer\Exception\UnrecognizedTokenException;
 
 class Lexer implements LexerInterface, MutableLexerInterface
 {
-    /**
-     * @var array<non-empty-string, non-empty-string>
-     */
-    protected array $tokens = [];
-
-    /**
-     * @var array<non-empty-string>
-     */
-    protected array $skip = [];
-
     private DriverInterface $driver;
 
     private bool $throwOnError = true;
@@ -35,11 +25,9 @@ class Lexer implements LexerInterface, MutableLexerInterface
      * @param array<non-empty-string> $skip
      * @param DriverInterface|null $driver
      */
-    public function __construct(array $tokens = [], array $skip = [], DriverInterface $driver = null)
+    public function __construct(protected array $tokens = [], protected array $skip = [], DriverInterface $driver = null)
     {
         $this->driver = $driver ?? new Markers();
-        $this->tokens = $tokens;
-        $this->skip = $skip;
     }
 
     public function disableUnrecognizedTokenException(): void

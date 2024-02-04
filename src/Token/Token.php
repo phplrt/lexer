@@ -15,13 +15,6 @@ class Token extends BaseToken
     private static int $anonymousId = 0;
 
     /**
-     * @var int<0, max>
-     */
-    private int $offset;
-
-    private string $value;
-
-    /**
      * @var non-empty-string|int<0, max>
      */
     private $name;
@@ -30,15 +23,13 @@ class Token extends BaseToken
      * @param string|int<0, max> $name
      * @param int<0, max> $offset
      */
-    public function __construct($name, string $value, int $offset)
+    public function __construct($name, private string $value, private int $offset)
     {
         if ($name === '') {
             $name = self::$anonymousId++;
         }
 
         $this->name = $name;
-        $this->value = $value;
-        $this->offset = $offset;
     }
 
     public static function empty(): TokenInterface

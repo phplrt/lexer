@@ -12,17 +12,9 @@ final class EndOfInput extends BaseToken
     private const EOI_VALUE = "\0";
 
     /**
-     * @var int<0, max>
-     */
-    private int $offset;
-
-    /**
      * @param int<0, max> $offset
      */
-    public function __construct(int $offset = 0)
-    {
-        $this->offset = $offset;
-    }
+    public function __construct(private int $offset = 0) {}
 
     public function getName(): string
     {

@@ -20,28 +20,15 @@ class Multistate implements LexerInterface
     private array $states = [];
 
     /**
-     * @var int<0, max>|non-empty-string|null
-     */
-    private $state;
-
-    /**
-     * @var array<non-empty-string|int<0, max>, array<non-empty-string, non-empty-string|int<0, max>>>
-     */
-    private array $transitions = [];
-
-    /**
      * @param array<non-empty-string|int<0, max>, array<non-empty-string, non-empty-string>|LexerInterface> $states
      * @param array<non-empty-string|int<0, max>, array<non-empty-string, non-empty-string|int<0, max>>> $transitions
      * @param int<0, max>|non-empty-string|null $state
      */
-    public function __construct(array $states, array $transitions = [], $state = null)
+    public function __construct(array $states, private array $transitions = [], private $state = null)
     {
         foreach ($states as $name => $data) {
             $this->setState($name, $data);
         }
-
-        $this->transitions = $transitions;
-        $this->state = $state;
     }
 
     /**
