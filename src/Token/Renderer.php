@@ -45,8 +45,11 @@ final class Renderer
 
     public function render(TokenInterface $token): string
     {
+        $name = $token->getName();
+
         return match (true) {
-            $token->getName() === DriverInterface::UNKNOWN_TOKEN_NAME, $token->getName() === $token->getValue() => $this->value($token),
+            $name === DriverInterface::UNKNOWN_TOKEN_NAME,
+            $name === $token->getValue() => $this->value($token),
             default => \sprintf('%s (%s)', $this->value($token), $this->name($token)),
         };
     }
