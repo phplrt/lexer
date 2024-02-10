@@ -16,22 +16,25 @@
         }
     ],
     "require": {
-        "php": "^8.1",
+        "php": "^7.4|^8.0",
         "ext-spl": "*",
         "ext-pcre": "*",
         "ext-json": "*",
         "ext-mbstring": "*",
-        "phplrt/lexer-contracts": "^4.0",
-        "phplrt/lexer-printer": "^4.0",
-        "phplrt/source-contracts": "^4.0"
+        "phplrt/source": "^3.4",
+        "phplrt/lexer-contracts": "^3.4",
+        "phplrt/exception": "^3.4"
     },
     "autoload": {
         "psr-4": {
             "Phplrt\\Lexer\\": "src"
-        }
+        },
+        "files": [
+            "src/polyfill.php"
+        ]
     },
     "require-dev": {
-        "phpunit/phpunit": "^10.5|^11.0",
+        "phpunit/phpunit": "^9.6|^10.0",
         "vimeo/psalm": "^5.21"
     },
     "autoload-dev": {
@@ -40,12 +43,12 @@
         }
     },
     "provide": {
-        "phplrt/lexer-contracts-implementation": "^4.0"
+        "phplrt/lexer-contracts-implementation": "^3.4"
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "4.x-dev",
-            "dev-main": "4.x-dev"
+            "dev-master": "3.x-dev",
+            "dev-main": "3.x-dev"
         }
     },
     "config": {

@@ -1,14 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
-         colors="true"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
          backupGlobals="true"
-         stopOnFailure="false"
-         processIsolation="false"
+         backupStaticAttributes="false"
          bootstrap="vendor/autoload.php"
-         cacheDirectory="vendor/.phpunit.cache"
-         backupStaticProperties="false"
+         colors="true"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         processIsolation="false"
+         stopOnFailure="false"
 >
+    <php>
+        <ini name="error_reporting" value="-1"/>
+        <ini name="memory_limit" value="-1"/>
+    </php>
+
     <testsuites>
         <testsuite name="unit">
             <directory>tests/Unit</directory>
@@ -18,16 +25,9 @@
         </testsuite>
     </testsuites>
 
-    <coverage/>
-
-    <source>
+    <coverage>
         <include>
             <directory suffix=".php">src</directory>
         </include>
-    </source>
-
-    <php>
-        <ini name="error_reporting" value="-1"/>
-        <ini name="memory_limit" value="-1"/>
-    </php>
+    </coverage>
 </phpunit>

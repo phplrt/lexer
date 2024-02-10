@@ -7,10 +7,7 @@ namespace Phplrt\Lexer\Tests\Functional;
 use Phplrt\Lexer\Lexer;
 use Phplrt\Lexer\Token\EndOfInput;
 use Phplrt\Lexer\Token\Token;
-use Phplrt\Source\Source;
-use PHPUnit\Framework\Attributes\Group;
 
-#[Group('phplrt/lexer'), Group('functional')]
 class SimpleLexerTest extends TestCase
 {
     public function testDigits(): void
@@ -23,8 +20,6 @@ class SimpleLexerTest extends TestCase
 
         $lexer = new Lexer(['T_WHITESPACE' => '\s+', 'T_DIGIT' => '\d+'], ['T_WHITESPACE']);
 
-        $this->assertEquals($expected, $this->tokensOf(
-            $lexer->lex(new Source('23 42')),
-        ));
+        $this->assertEquals($expected, $this->tokensOf($lexer->lex('23 42')));
     }
 }

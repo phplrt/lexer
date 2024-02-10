@@ -4,46 +4,128 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer;
 
-use Phplrt\Contracts\Lexer\Channel;
+use Phplrt\Contracts\Exception\RuntimeExceptionInterface;
 use Phplrt\Contracts\Lexer\LexerInterface;
+use Phplrt\Contracts\Lexer\TokenInterface;
 use Phplrt\Contracts\Source\ReadableInterface;
-use Phplrt\Lexer\Exception\StateException;
-use Phplrt\Lexer\Exception\TransitionException;
+use Phplrt\Lexer\Exception\UnexpectedStateException;
+use Phplrt\Lexer\Exception\EndlessRecursionException;
+use Phplrt\Source\File;
 
-/**
- * @psalm-type LexerStateType = non-empty-string|int<0, max>
- * @phpstan-type LexerStateType non-empty-string|int<0, max>
- */
-final class Multistate implements LexerInterface
+class Multistate implements LexerInterface
 {
     /**
-     * @var LexerStateType
+     * @var array<LexerInterface>
      */
-    private readonly int|string $state;
+    private array $states = [];
 
     /**
-     * @param LexerInterface $states
-     * @param non-empty-array<LexerStateType, non-empty-array<non-empty-string, LexerStateType>> $transitions
-     * @param LexerStateType|null $state
+     * @var int<0, max>|non-empty-string|null
      */
-    public function __construct(
-        private readonly array $states = [],
-        private readonly array $transitions = [],
-        int|string $state = null,
-    ) {
-        if ($this->states === []) {
-            throw StateException::fromEmptyStates();
+    private $state;
+
+    /**
+     * @var array<non-empty-string|int<0, max>, array<non-empty-string, non-empty-string|int<0, max>>>
+     */
+    private array $transitions = [];
+
+    /**
+     * @param array<non-empty-string|int<0, max>, LexerInterface> $states
+     * @param array<non-empty-string|int<0, max>, array<non-empty-string, non-empty-string|int<0, max>>> $transitions
+     * @param int<0, max>|non-empty-string|null $state
+     */
+    public function __construct(array $states, array $transitions = [], $state = null)
+    {
+        foreach ($states as $name => $data) {
+            $this->setState($name, $data);
         }
 
-        if ($this->transitions === []) {
-            throw StateException::fromEmptyTransitions();
-        }
-
-        $this->state = $state ?? \array_key_first($this->states);
+        $this->transitions = $transitions;
+        $this->state = $state;
     }
 
-    public function lex(ReadableInterface $source, int $offset = 0, int $length = null): iterable
+    /**
+     * @param non-empty-string|int<0, max>|null $state
+     * @return $this
+     */
+    public function startsWith($state): self
     {
+        assert(\is_string($state) || \is_int($state) || $state === null); /** @phpstan-ignore-line */
+
+        $this->state = $state;
+
+        return $this;
+    }
+
+    /**
+     * @param non-empty-string|int<0, max> $name
+     * @param array<non-empty-string, non-empty-string>|LexerInterface $data
+     * @return $this
+     */
+    public function setState($name, $data): self
+    {
+        assert(\is_string($name) || \is_int($name)); /** @phpstan-ignore-line */
+        assert(\is_array($data) || $data instanceof LexerInterface); /** @phpstan-ignore-line */
+
+        $this->states[$name] = $data instanceof LexerInterface ? $data : new Lexer($data);
+
+        return $this;
+    }
+
+    /**
+     * @param non-empty-string|int<0, max> $name
+     * @return $this
+     */
+    public function removeState($name): self
+    {
+        unset($this->states[$name]);
+
+        return $this;
+    }
+
+    /**
+     * @param non-empty-string $token
+     * @param non-empty-string|int<0, max> $in
+     * @param non-empty-string|int<0, max> $then
+     * @return $this
+     */
+    public function when(string $token, $in, $then): self
+    {
+        $this->transitions[$in][$token] = $then;
+
+        return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @param string|resource|ReadableInterface $source
+     * @param int<0, max> $offset
+     * @return iterable<TokenInterface>
+     */
+    public function lex($source, int $offset = 0): iterable
+    {
+        yield from $this->run(File::new($source), $offset);
+    }
+
+    /**
+     * @param int<0, max> $offset
+     * @return iterable<TokenInterface>
+     * @throws RuntimeExceptionInterface
+     *
+     * @psalm-suppress UnusedVariable
+     * @psalm-suppress TypeDoesNotContainType
+     */
+    private function run(ReadableInterface $source, int $offset): iterable
+    {
+        if ($this->states === []) {
+            throw UnexpectedStateException::fromEmptyStates($source);
+        }
+
+        if ($this->state === null) {
+            $this->state = \array_key_first($this->states);
+        }
+
         $states = [];
         $state = null;
 
@@ -60,14 +142,15 @@ final class Multistate implements LexerInterface
              * Checking the existence of the current state.
              */
             if (!isset($this->states[$state])) {
-                if (isset($token)) {
-                    throw TransitionException::fromInvalidTransition($source, $token, $state);
-                }
-
-                throw StateException::fromInvalidState($state);
+                /**
+                 * @noinspection IssetArgumentExistenceInspection
+                 * @psalm-suppress UndefinedVariable
+                 */
+                throw UnexpectedStateException::fromState($state, $source, $token ?? null);
             }
 
-            $stream = $this->states[$state]->lex($source, $offset, $length);
+            /** @psalm-suppress TooManyArguments */
+            $stream = $this->states[$state]->lex($source, $offset);
 
             /**
              * This cycle is necessary in order to capture the last token,
@@ -78,7 +161,7 @@ final class Multistate implements LexerInterface
             foreach ($stream as $token) {
                 yield $token;
 
-                if ($token->getChannel() === Channel::EOI) {
+                if ($token->getName() === TokenInterface::END_OF_INPUT) {
                     return;
                 }
 
@@ -102,7 +185,7 @@ final class Multistate implements LexerInterface
                      * then at this stage there was an entrance to an endless cycle.
                      */
                     if (($states[$state] ?? null) === $offset) {
-                        throw TransitionException::fromEndlessRecursion($source, $token, $state);
+                        throw EndlessRecursionException::fromState($state, $source, $token);
                     }
 
                     $completed = false;

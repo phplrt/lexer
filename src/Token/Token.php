@@ -4,34 +4,55 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer\Token;
 
-use Phplrt\Contracts\Lexer\Channel;
-use Phplrt\Contracts\Lexer\ChannelInterface;
+use Phplrt\Lexer\Driver\DriverInterface;
 use Phplrt\Contracts\Lexer\TokenInterface;
-use Phplrt\Lexer\Printer\PrettyPrinter;
 
-class Token implements TokenInterface, \Stringable
+class Token extends BaseToken
 {
     /**
      * @var int<0, max>
      */
-    private readonly int $bytes;
+    private static int $anonymousId = 0;
 
     /**
-     * @param non-empty-string|int $name
+     * @var int<0, max>
+     */
+    private int $offset;
+
+    private string $value;
+
+    /**
+     * @var non-empty-string|int<0, max>
+     */
+    private $name;
+
+    /**
+     * @param string|int<0, max> $name
      * @param int<0, max> $offset
      */
-    public function __construct(
-        private readonly string|int $name,
-        private readonly string $value,
-        private readonly int $offset = 0,
-        private readonly ChannelInterface $channel = Channel::DEFAULT,
-    ) {
-        $this->bytes = \strlen($this->value);
+    public function __construct($name, string $value, int $offset)
+    {
+        if ($name === '') {
+            $name = self::$anonymousId++;
+        }
+
+        $this->name = $name;
+        $this->value = $value;
+        $this->offset = $offset;
     }
 
-    public function getName(): int|string
+    public static function empty(): TokenInterface
     {
-        return $this->name;
+        return new self(DriverInterface::UNKNOWN_TOKEN_NAME, '', 0);
+    }
+
+    public function getName(): string
+    {
+        if (\is_string($this->name)) {
+            return $this->name;
+        }
+
+        return '#' . $this->name;
     }
 
     public function getValue(): string
@@ -44,20 +65,12 @@ class Token implements TokenInterface, \Stringable
         return $this->offset;
     }
 
-    public function getBytes(): int
-    {
-        return $this->bytes;
-    }
-
-    public function getChannel(): ChannelInterface
-    {
-        return $this->channel;
-    }
-
     public function __toString(): string
     {
-        $instance = PrettyPrinter::getInstance();
+        if (\class_exists(Renderer::class)) {
+            return (new Renderer())->render($this);
+        }
 
-        return $instance->printToken($this);
+        return $this->getName();
     }
 }

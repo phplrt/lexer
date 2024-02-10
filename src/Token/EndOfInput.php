@@ -4,35 +4,29 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer\Token;
 
-use Phplrt\Contracts\Lexer\Channel;
-use Phplrt\Contracts\Lexer\ChannelInterface;
-use Phplrt\Contracts\Lexer\TokenInterface;
-use Phplrt\Lexer\Printer\PrettyPrinter;
-
-final class EndOfInput implements TokenInterface, \Stringable
+final class EndOfInput extends BaseToken
 {
     /**
-     * @var non-empty-string
+     * @var string
      */
-    final public const EOI_NAME = 'T_EOI';
+    private const EOI_VALUE = "\0";
 
     /**
-     * @var non-empty-string
+     * @var int<0, max>
      */
-    final public const EOI_VALUE = "\0";
+    private int $offset;
 
     /**
      * @param int<0, max> $offset
-     * @param non-empty-string $name
      */
-    public function __construct(
-        private readonly int $offset = 0,
-        private readonly string $name = self::EOI_NAME,
-    ) {}
+    public function __construct(int $offset = 0)
+    {
+        $this->offset = $offset;
+    }
 
     public function getName(): string
     {
-        return $this->name;
+        return self::END_OF_INPUT;
     }
 
     public function getOffset(): int
@@ -50,15 +44,11 @@ final class EndOfInput implements TokenInterface, \Stringable
         return 0;
     }
 
-    public function getChannel(): ChannelInterface
-    {
-        return Channel::EOI;
-    }
-
+    /**
+     * @return non-empty-string
+     */
     public function __toString(): string
     {
-        $instance = PrettyPrinter::getInstance();
-
-        return $instance->printToken($this);
+        return '\0';
     }
 }

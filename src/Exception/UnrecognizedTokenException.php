@@ -4,46 +4,23 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer\Exception;
 
-use Phplrt\Contracts\Lexer\LexerRuntimeExceptionInterface;
-use Phplrt\Contracts\Lexer\TokenInterface;
 use Phplrt\Contracts\Source\ReadableInterface;
-use Phplrt\Lexer\Printer\PrettyPrinter;
+use Phplrt\Lexer\Token\Renderer;
+use Phplrt\Contracts\Lexer\TokenInterface;
 
-class UnrecognizedTokenException extends \RuntimeException implements LexerRuntimeExceptionInterface
+class UnrecognizedTokenException extends LexerRuntimeException
 {
-    final public const CODE_UNRECOGNIZED_TOKEN = 0x01;
+    /**
+     * @var string
+     */
+    private const ERROR_UNRECOGNIZED_TOKEN = 'Syntax error, unrecognized %s';
 
-    protected const CODE_LAST = self::CODE_UNRECOGNIZED_TOKEN;
-
-    final public function __construct(
-        private readonly ReadableInterface $source,
-        private readonly TokenInterface $token,
-        string $message,
-        int $code = self::CODE_LAST,
-        \Throwable $previous = null
-    ) {
-        parent::__construct($message, $code, $previous);
-    }
-
-    public static function fromToken(
-        ReadableInterface $source,
-        TokenInterface $token,
-        \Throwable $previous = null,
-    ): self {
-        $message = \vsprintf('Syntax error, unrecognized %s', [
-            (new PrettyPrinter())->printToken($token),
+    public static function fromToken(ReadableInterface $src, TokenInterface $tok, \Throwable $prev = null): self
+    {
+        $message = \vsprintf(self::ERROR_UNRECOGNIZED_TOKEN, [
+            (new Renderer())->render($tok),
         ]);
 
-        return new static($source, $token, $message, self::CODE_UNRECOGNIZED_TOKEN, $previous);
-    }
-
-    public function getSource(): ReadableInterface
-    {
-        return $this->source;
-    }
-
-    public function getToken(): TokenInterface
-    {
-        return $this->token;
+        return new static($message, $src, $tok, $prev);
     }
 }
