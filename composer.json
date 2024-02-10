@@ -21,9 +21,9 @@
         "ext-pcre": "*",
         "ext-json": "*",
         "ext-mbstring": "*",
-        "phplrt/source": "^4.0",
         "phplrt/lexer-contracts": "^4.0",
-        "phplrt/exception": "^4.0"
+        "phplrt/lexer-printer": "^4.0",
+        "phplrt/source-contracts": "^4.0"
     },
     "autoload": {
         "psr-4": {

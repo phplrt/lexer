@@ -4,175 +4,243 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer;
 
-use Phplrt\Source\File;
-use Phplrt\Lexer\Token\Token;
-use Phplrt\Lexer\Driver\Markers;
-use Phplrt\Lexer\Token\EndOfInput;
-use Phplrt\Lexer\Driver\DriverInterface;
+use Phplrt\Contracts\Lexer\Channel;
 use Phplrt\Contracts\Lexer\LexerInterface;
 use Phplrt\Contracts\Lexer\TokenInterface;
 use Phplrt\Contracts\Source\ReadableInterface;
+use Phplrt\Lexer\Config\HandlerInterface;
+use Phplrt\Lexer\Config\OnEndOfInput;
+use Phplrt\Lexer\Config\OnHiddenToken;
+use Phplrt\Lexer\Config\OnUnknownToken;
+use Phplrt\Lexer\Exception\CompilationException;
 use Phplrt\Lexer\Exception\UnrecognizedTokenException;
+use Phplrt\Lexer\Runtime\Executor;
+use Phplrt\Lexer\Runtime\ExecutorInterface;
+use Phplrt\Lexer\Token\Composite;
+use Phplrt\Lexer\Token\EndOfInput;
+use Phplrt\Lexer\Token\UnknownToken;
 
-class Lexer implements LexerInterface, MutableLexerInterface
+final class Lexer implements LexerInterface
 {
-    private DriverInterface $driver;
-
-    private bool $throwOnError = true;
+    /**
+     * Default token name for unidentified tokens.
+     *
+     * @var non-empty-string
+     */
+    final public const DEFAULT_UNKNOWN_TOKEN_NAME = UnknownToken::UNKNOWN_NAME;
 
     /**
-     * @param array<non-empty-string, non-empty-string> $tokens
-     * @param array<non-empty-string> $skip
-     * @param DriverInterface|null $driver
+     * @var non-empty-string
      */
-    public function __construct(protected array $tokens = [], protected array $skip = [], DriverInterface $driver = null)
+    final public const DEFAULT_EOI_TOKEN_NAME = EndOfInput::EOI_NAME;
+
+    private ?ExecutorInterface $executor = null;
+
+    /**
+     * @param array<non-empty-string|int, non-empty-string> $tokens List of
+     *        token names/identifiers and its patterns.
+     * @param list<non-empty-string|int> $skip List of hidden token
+     *        names/identifiers.
+     * @param bool $composite Enables if {@see true} or disables if {@see false}
+     *        support for composite tokens ({@see Composite}). Enabling this
+     *        option allows to capture PCRE subgroups, but slows down the lexer.
+     * @param HandlerInterface $onUnknownToken This setting is responsible for
+     *        the behavior of the lexer in case of detection of unrecognized
+     *        tokens.
+     *
+     *        See {@see OnUnknownToken} for more details.
+     *
+     *        Note that you can also define your own {@see HandlerInterface} to
+     *        override behavior.
+     * @param HandlerInterface $onHiddenToken This setting is responsible for
+     *        the behavior of the lexer in case of detection of hidden/skipped
+     *        tokens.
+     *
+     *        See {@see OnHiddenToken} for more details.
+     *
+     *        Note that you can also define your own {@see HandlerInterface} to
+     *        override behavior.
+     * @param HandlerInterface $onEndOfInput This setting is responsible for the
+     *        operation of the terminal token ({@see EndOfInput}).
+     *
+     *        See also {@see OnEndOfInput} for more details.
+     *
+     *        Note that you can also define your own {@see HandlerInterface} to
+     *        override behavior.
+     * @param non-empty-string $unknown The identifier that marks each unknown
+     *        token inside the executor (internal runtime). This parameter only
+     *        needs to be changed if the name is already in use in the user's
+     *        token set (in the {@see $tokens} parameter), otherwise it makes
+     *        no sense.
+     * @param non-empty-string $eoi
+     */
+    public function __construct(
+        private readonly array $tokens,
+        private readonly array $skip = [],
+        private readonly bool $composite = false,
+        private HandlerInterface $onHiddenToken = OnHiddenToken::SKIP,
+        private readonly string $unknown = Lexer::DEFAULT_UNKNOWN_TOKEN_NAME,
+        private HandlerInterface $onUnknownToken = OnUnknownToken::THROW,
+        private readonly string $eoi = Lexer::DEFAULT_EOI_TOKEN_NAME,
+        private HandlerInterface $onEndOfInput = OnEndOfInput::RETURN,
+    ) {}
+
+    /**
+     * @param HandlerInterface $handler A handler that defines the behavior of
+     *        the lexer in the case of a "hidden" token.
+     *
+     * @psalm-immutable This method returns a new {@see LexerInterface} instance
+     *                  and does not change the current state of the lexer.
+     */
+    public function onHiddenToken(HandlerInterface $handler): self
     {
-        $this->driver = $driver ?? new Markers();
+        $self = clone $this;
+        $self->onHiddenToken = $handler;
+
+        return $self;
     }
 
-    public function disableUnrecognizedTokenException(): void
+    /**
+     * @param HandlerInterface $handler A handler that defines the behavior of
+     *        the lexer in the case of an "unknown" token.
+     *
+     * @psalm-immutable This method returns a new {@see LexerInterface} instance
+     *                  and does not change the current state of the lexer.
+     */
+    public function onUnknownToken(HandlerInterface $handler): self
     {
-        $this->throwOnError = false;
+        $self = clone $this;
+        $self->onUnknownToken = $handler;
+
+        return $self;
     }
 
-    public function getDriver(): DriverInterface
+    /**
+     * @param HandlerInterface $handler A handler that defines the behavior of
+     *        the lexer in the case of an "end of input" token.
+     *
+     * @psalm-immutable This method returns a new {@see LexerInterface} instance
+     *                  and does not change the current state of the lexer.
+     */
+    public function onEndOfInput(HandlerInterface $handler): self
     {
-        return $this->driver;
+        $self = clone $this;
+        $self->onEndOfInput = $handler;
+
+        return $self;
     }
 
-    public function setDriver(DriverInterface $driver): self
+    /**
+     * @throws CompilationException
+     */
+    private function warmup(): void
     {
-        $this->driver = $driver;
-
-        return $this;
-    }
-
-    public function skip(string ...$tokens): self
-    {
-        $this->skip = \array_merge($this->skip, $tokens);
-
-        return $this;
-    }
-
-    public function append(string $token, string $pattern): self
-    {
-        $this->reset();
-        $this->tokens[$token] = $pattern;
-
-        return $this;
-    }
-
-    private function reset(): void
-    {
-        $this->driver->reset();
-    }
-
-    public function appendMany(array $tokens): self
-    {
-        $this->reset();
-        $this->tokens = \array_merge($this->tokens, $tokens);
-
-        return $this;
-    }
-
-    public function prepend(string $token, string $pattern): self
-    {
-        $this->reset();
-        $this->tokens = \array_merge([$token => $pattern], $this->tokens);
-
-        return $this;
-    }
-
-    public function prependMany(array $tokens, bool $reverseOrder = false): self
-    {
-        $this->reset();
-        $this->tokens = \array_merge($reverseOrder ? \array_reverse($tokens) : $tokens, $this->tokens);
-
-        return $this;
-    }
-
-    public function remove(string ...$tokens): self
-    {
-        $this->reset();
-
-        foreach ($tokens as $token) {
-            unset($this->tokens[$token]);
-
-            $this->skip = \array_filter($this->skip, static fn(string $haystack): bool => $haystack !== $token);
+        if ($this->executor === null) {
+            $this->executor = new Executor(
+                $this->tokens,
+                $this->skip,
+                $this->composite,
+                unknown: $this->unknown,
+            );
         }
-
-        return $this;
     }
 
     /**
      * {@inheritDoc}
      *
-     * @param string|resource|ReadableInterface $source
-     * @param int<0, max> $offset
-     * @return iterable<TokenInterface>
-     */
-    public function lex($source, int $offset = 0): iterable
-    {
-        return $this->run(File::new($source), $offset);
-    }
-
-    /**
-     * @param int<0, max> $offset
+     * @psalm-mutation-free
      *
-     * @return iterable<TokenInterface>
+     * @throws CompilationException
+     * @throws UnrecognizedTokenException
+     *
+     * @psalm-suppress ImpureMethodCall : The implementation uses memoization,
+     *                 which should not change the behavior of the code.
      */
-    private function run(ReadableInterface $source, int $offset): iterable
+    public function lex(ReadableInterface $source, int $offset = 0, int $length = null): iterable
     {
-        $unknown = [];
+        assert($offset >= 0, 'Offset value must be non-negative');
+        assert($length === null || $length > 0, 'Length value must be greater than 0');
 
-        foreach ($this->driver->run($this->tokens, File::new($source), $offset) as $token) {
-            if (\in_array($token->getName(), $this->skip, true)) {
+        $this->warmup();
+
+        $unknown = [];
+        $token = null;
+
+        /** @psalm-suppress PossiblyNullReference : Executor cannot be null */
+        foreach ($this->executor->run($source, $offset, $length) as $token) {
+            if ($token->getChannel() === Channel::HIDDEN) {
+                if ($result = $this->handleHiddenToken($source, $token)) {
+                    yield $result;
+                }
+
                 continue;
             }
 
-            if ($token->getName() === $this->driver::UNKNOWN_TOKEN_NAME) {
+            if ($token->getName() === $this->unknown) {
                 $unknown[] = $token;
                 continue;
             }
 
-            if ($unknown !== []) {
-                if ($this->throwOnError) {
-                    throw UnrecognizedTokenException::fromToken($source, $this->reduceUnknownToken($unknown));
-                }
-
-                yield $this->reduceUnknownToken($unknown);
-
+            if ($unknown !== [] && ($result = $this->handleUnknownToken($source, $unknown))) {
+                yield $result;
                 $unknown = [];
             }
 
             yield $token;
         }
 
-        if ($unknown !== []) {
-            if ($this->throwOnError) {
-                throw UnrecognizedTokenException::fromToken($source, $this->reduceUnknownToken($unknown));
-            }
-
-            yield $this->reduceUnknownToken($unknown);
+        if ($unknown !== [] && $result = $this->handleUnknownToken($source, $unknown)) {
+            yield $token = $result;
         }
 
-        if (!\in_array(TokenInterface::END_OF_INPUT, $this->skip, true)) {
-            /** @psalm-suppress all : Psalm error: (offset) int<0, max> + (size) int<0, max> = int<0, max> */
-            yield new EndOfInput(isset($token) ? $token->getOffset() + $token->getBytes() : 0);
+        if ($eoi = $this->handleEoiToken($source, $token)) {
+            yield $eoi;
         }
     }
 
     /**
-     * @param array<TokenInterface> $tokens
+     * @param iterable<TokenInterface> $tokens
+     * @return array{string, int<0, max>}
      */
-    private function reduceUnknownToken(array $tokens): TokenInterface
+    private function merge(iterable $tokens): array
     {
-        $concat = static function (string $data, TokenInterface $token): string {
-            return $data . $token->getValue();
-        };
+        $offset = null;
+        $body = '';
 
-        $value = \array_reduce($tokens, $concat, '');
+        foreach ($tokens as $token) {
+            $offset ??= $token->getOffset();
+            $body .= $token->getValue();
+        }
 
-        return new Token(\reset($tokens)->getName(), $value, \reset($tokens)->getOffset());
+        return [$body, $offset ?? 0];
+    }
+
+    /**
+     * @param non-empty-list<TokenInterface> $tokens
+     *
+     * @throws UnrecognizedTokenException
+     */
+    private function handleUnknownToken(ReadableInterface $source, array $tokens): ?TokenInterface
+    {
+        [$body, $offset] = $this->merge($tokens);
+
+        return $this->onUnknownToken->handle($source, new UnknownToken(
+            $body,
+            $offset,
+            $this->unknown,
+        ));
+    }
+
+    private function handleEoiToken(ReadableInterface $source, ?TokenInterface $last): ?TokenInterface
+    {
+        return $this->onEndOfInput->handle($source, new EndOfInput(
+            (int)($last?->getOffset() + $last?->getBytes()),
+            $this->eoi,
+        ));
+    }
+
+    private function handleHiddenToken(ReadableInterface $source, TokenInterface $token): ?TokenInterface
+    {
+        return $this->onHiddenToken->handle($source, $token);
     }
 }

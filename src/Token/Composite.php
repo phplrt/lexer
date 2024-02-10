@@ -4,84 +4,60 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer\Token;
 
+use Phplrt\Contracts\Lexer\Channel;
+use Phplrt\Contracts\Lexer\ChannelInterface;
 use Phplrt\Contracts\Lexer\TokenInterface;
 
-class Composite extends Token implements CompositeTokenInterface
+/**
+ * @template-implements \IteratorAggregate<array-key, TokenInterface>
+ */
+final class Composite extends Token implements \IteratorAggregate, CompositeTokenInterface
 {
     /**
-     * @param non-empty-string|int<0, max> $name
-     * @param int<0, max> $offset
-     * @param array<int, TokenInterface> $children
+     * @var non-empty-array<array-key, TokenInterface>
      */
-    public function __construct($name, string $value, int $offset, private array $children)
-    {
-        parent::__construct($name, $value, $offset);
-    }
+    private readonly array $children;
 
     /**
-     * @param non-empty-array<int, TokenInterface> $tokens
+     * @param non-empty-string|int $name
+     * @param int<0, max> $offset
+     * @param non-empty-array<array-key, TokenInterface> $children
      */
-    public static function fromArray(array $tokens): self
-    {
-        \assert($tokens !== []);
+    public function __construct(
+        array $children,
+        string|int $name,
+        string $value,
+        int $offset = 0,
+        ChannelInterface $channel = Channel::DEFAULT,
+    ) {
+        parent::__construct($name, $value, $offset, $channel);
 
-        $first = \array_shift($tokens);
-
-        return new self($first->getName(), $first->getValue(), $first->getOffset(), $tokens);
+        $this->children = $children;
     }
 
-    public function jsonSerialize(): array
+    public function offsetExists($offset): bool
     {
-        return \array_merge(parent::jsonSerialize(), [
-            'children' => $this->children,
-        ]);
+        return isset($this->children[$offset]);
+    }
+
+    public function offsetGet($offset): ?TokenInterface
+    {
+        return $this->children[$offset] ?? null;
+    }
+
+    public function offsetSet($offset, $value): void
+    {
+        throw new \BadMethodCallException(self::class . ' objects are immutable');
+    }
+
+    public function offsetUnset($offset): void
+    {
+        throw new \BadMethodCallException(self::class . ' objects are immutable');
     }
 
     public function getIterator(): \Traversable
     {
         return new \ArrayIterator($this->children);
-    }
-
-    /**
-     * @param int $offset
-     */
-    public function offsetExists($offset): bool
-    {
-        \assert(\is_int($offset));
-
-        return isset($this->children[$offset]);
-    }
-
-    /**
-     * @param int $offset
-     */
-    public function offsetGet($offset): ?TokenInterface
-    {
-        \assert(\is_int($offset));
-
-        return $this->children[$offset] ?? null;
-    }
-
-    /**
-     * @param int $offset
-     * @param TokenInterface $value
-     */
-    public function offsetSet($offset, $value): void
-    {
-        \assert(\is_int($offset));
-        \assert($value instanceof TokenInterface);
-
-        $this->children[$offset] = $value;
-    }
-
-    /**
-     * @param int $offset
-     */
-    public function offsetUnset($offset): void
-    {
-        \assert(\is_int($offset));
-
-        unset($this->children[$offset]);
     }
 
     public function count(): int
