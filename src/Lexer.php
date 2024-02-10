@@ -234,7 +234,7 @@ final class Lexer implements LexerInterface
     private function handleEoiToken(ReadableInterface $source, ?TokenInterface $last): ?TokenInterface
     {
         return $this->onEndOfInput->handle($source, new EndOfInput(
-            (int)($last?->getOffset() + $last?->getBytes()),
+            (int) ($last?->getOffset() + $last?->getBytes()),
             $this->eoi,
         ));
     }

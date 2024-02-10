@@ -28,8 +28,7 @@ final class EndOfInput implements TokenInterface, \Stringable
     public function __construct(
         private readonly int $offset = 0,
         private readonly string $name = self::EOI_NAME,
-    ) {
-    }
+    ) {}
 
     public function getName(): string
     {

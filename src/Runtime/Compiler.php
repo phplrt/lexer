@@ -81,8 +81,7 @@ class Compiler
     public function __construct(
         private readonly bool $debug,
         private readonly string $delimiter = self::DEFAULT_DELIMITER,
-    ) {
-    }
+    ) {}
 
     /**
      * @param iterable<non-empty-string, non-empty-string> $tokens List of
@@ -137,7 +136,7 @@ class Compiler
     private function name(string|int $name): string
     {
         /** @var non-empty-string */
-        return \preg_quote((string)$name, $this->delimiter);
+        return \preg_quote((string) $name, $this->delimiter);
     }
 
     /**

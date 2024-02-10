@@ -31,8 +31,7 @@ class CompiledExecutor implements ExecutorInterface
         public readonly string $unknown,
         public readonly array $aliases,
         public readonly bool $composite,
-    ) {
-    }
+    ) {}
 
     /**
      * @throws SourceExceptionInterface
@@ -96,7 +95,7 @@ class CompiledExecutor implements ExecutorInterface
             return $this->composite($name, $payload, $offset, $channel);
         }
 
-        return new Token($name, (string)$payload[0], $offset, $channel);
+        return new Token($name, (string) $payload[0], $offset, $channel);
     }
 
     /**

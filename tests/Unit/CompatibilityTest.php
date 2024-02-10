@@ -11,6 +11,4 @@ use PHPUnit\Framework\Attributes\Group;
  *       a MAJOR version of the package.
  */
 #[Group('phplrt/lexer'), Group('unit')]
-class CompatibilityTest extends TestCase
-{
-}
+class CompatibilityTest extends TestCase {}

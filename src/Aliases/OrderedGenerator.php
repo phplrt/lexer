@@ -16,8 +16,7 @@ final class OrderedGenerator implements GeneratorInterface
      */
     public function __construct(
         private readonly string $prefix = 'A',
-    ) {
-    }
+    ) {}
 
     /**
      * @return non-empty-string

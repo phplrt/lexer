@@ -45,7 +45,12 @@ final class Executor implements ExecutorInterface
         private readonly string $unknown = Lexer::DEFAULT_UNKNOWN_TOKEN_NAME,
         private readonly GeneratorInterface $aliases = new OrderedGenerator(),
     ) {
-        $this->debug = $debug ?? (bool)\assert_options(\ASSERT_ACTIVE);
+        if ($debug === null) {
+            // Enable debug in case of assertions is available.
+            assert($debug = true);
+        }
+
+        $this->debug = $debug;
         $this->compiled = $this->compile($tokens, $composite);
     }
 
@@ -94,7 +99,7 @@ final class Executor implements ExecutorInterface
         // 1) First char MUST not be a number
         // 2) Name MUST contain only A-Z, 0-9 and "_", "-" chars
         return !\is_numeric($name[0])
-            && (bool)\preg_match('/^[a-zA-Z0-9_-]+$/', $name);
+            && (bool) \preg_match('/^[a-zA-Z0-9_-]+$/', $name);
     }
 
     /**
