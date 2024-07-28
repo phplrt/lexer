@@ -11,6 +11,7 @@ abstract class TestCase extends BaseTestCase
 {
     /**
      * @param iterable|TokenInterface[] $result
+     *
      * @return array|TokenInterface[]
      */
     protected function tokensOf(iterable $result): array
