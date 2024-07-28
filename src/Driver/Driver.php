@@ -9,7 +9,7 @@ use Phplrt\Lexer\Compiler\CompilerInterface;
 /**
  * @deprecated since phplrt 3.6 and will be removed in 4.0.
  *
- * @internal this is an internal library class, please do not use it in your code
+ * @internal This is an internal library class, please do not use it in your code.
  * @psalm-internal Phplrt\Lexer
  */
 abstract class Driver implements DriverInterface
@@ -38,7 +38,6 @@ abstract class Driver implements DriverInterface
 
     /**
      * @param array<non-empty-string, non-empty-string> $tokens
-     *
      * @return non-empty-string
      */
     protected function getPattern(array $tokens): string
@@ -52,7 +51,6 @@ abstract class Driver implements DriverInterface
 
     /**
      * @param array<non-empty-string, non-empty-string> $tokens
-     *
      * @return non-empty-string
      */
     protected function compile(array $tokens): string
