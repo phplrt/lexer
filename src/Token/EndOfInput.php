@@ -18,29 +18,16 @@ final class EndOfInput extends BaseToken
      *
      * @var non-empty-string
      */
-    public const DEFAULT_TOKEN_NAME = TokenInterface::END_OF_INPUT;
-
-    /**
-     * @var int<0, max>
-     */
-    private int $offset;
-
-    /**
-     * @var array-key
-     */
-    private $name;
+    public const DEFAULT_TOKEN_NAME = 'T_EOI';
 
     /**
      * @param int<0, max> $offset
      * @param array-key $name
      */
     public function __construct(
-        int $offset = 0,
-        $name = self::DEFAULT_TOKEN_NAME
-    ) {
-        $this->offset = $offset;
-        $this->name = $name;
-    }
+        private readonly int $offset = 0,
+        private readonly string $name = self::DEFAULT_TOKEN_NAME,
+    ) {}
 
     public function getName(): string
     {

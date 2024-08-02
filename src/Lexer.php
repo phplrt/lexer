@@ -45,16 +45,6 @@ class Lexer implements PositionalLexerInterface, MutableLexerInterface
      */
     public const DEFAULT_EOI_TOKEN_NAME = EndOfInput::DEFAULT_TOKEN_NAME;
 
-    /**
-     * @var array<array-key, non-empty-string>
-     */
-    protected array $tokens = [];
-
-    /**
-     * @var list<non-empty-string>
-     */
-    protected array $skip = [];
-
     private DriverInterface $driver;
 
     private HandlerInterface $onHiddenToken;
@@ -65,22 +55,10 @@ class Lexer implements PositionalLexerInterface, MutableLexerInterface
 
     /**
      * @var non-empty-string
-     *
-     * @readonly
      */
-    private string $unknown;
+    private readonly string $unknown;
 
-    /**
-     * @var non-empty-string
-     *
-     * @readonly
-     */
-    private string $eoi;
-
-    /**
-     * @readonly
-     */
-    private SourceFactoryInterface $sources;
+    private readonly SourceFactoryInterface $sources;
 
     /**
      * @param array<array-key, non-empty-string> $tokens list of
@@ -117,22 +95,20 @@ class Lexer implements PositionalLexerInterface, MutableLexerInterface
      * @param non-empty-string $eoi
      */
     public function __construct(
-        array $tokens = [],
-        array $skip = [],
+        protected array $tokens = [],
+        protected array $skip = [],
         ?DriverInterface $driver = null,
         ?HandlerInterface $onHiddenToken = null,
         ?HandlerInterface $onUnknownToken = null,
         ?HandlerInterface $onEndOfInput = null,
         string $unknown = Lexer::DEFAULT_UNKNOWN_TOKEN_NAME,
-        string $eoi = Lexer::DEFAULT_EOI_TOKEN_NAME,
+        /**
+         * @readonly
+         */
+        private string $eoi = Lexer::DEFAULT_EOI_TOKEN_NAME,
         ?SourceFactoryInterface $sources = null
     ) {
-        $this->tokens = $tokens;
-        $this->skip = $skip;
-
         $this->driver = $driver ?? new Markers(new MarkersCompiler(), $unknown);
-
-        $this->eoi = $eoi;
         $this->unknown = $unknown;
 
         $this->onHiddenToken = $onHiddenToken ?? new NullHandler();
@@ -140,21 +116,6 @@ class Lexer implements PositionalLexerInterface, MutableLexerInterface
         $this->onEndOfInput = $onEndOfInput ?? new PassthroughHandler();
 
         $this->sources = $sources ?? new SourceFactory();
-    }
-
-    /**
-     * @deprecated since phplrt 3.6 and will be removed in 4.0. Please use
-     *             "$onUnknownToken" argument of the {@see __construct()}
-     *             or {@see Lexer::withUnknownTokenHandler()} method instead.
-     */
-    public function disableUnrecognizedTokenException(): void
-    {
-        trigger_deprecation('phplrt/lexer', '3.6', <<<'MSG'
-            Using "%s::disableUnrecognizedTokenException()" is deprecated.
-            Please use %1$s::withUnknownTokenHandler() instead.
-            MSG, static::class);
-
-        $this->onUnknownToken = new PassthroughHandler();
     }
 
     /**
@@ -206,36 +167,6 @@ class Lexer implements PositionalLexerInterface, MutableLexerInterface
         $self->onEndOfInput = $handler;
 
         return $self;
-    }
-
-    /**
-     * @deprecated since phplrt 3.6 and will be removed in 4.0.
-     *
-     * @api
-     */
-    public function getDriver(): DriverInterface
-    {
-        trigger_deprecation('phplrt/lexer', '3.6', <<<'MSG'
-            Using "%s::getDriver()" is deprecated.
-            MSG, static::class);
-
-        return $this->driver;
-    }
-
-    /**
-     * @deprecated since phplrt 3.6 and will be removed in 4.0.
-     *
-     * @api
-     */
-    public function setDriver(DriverInterface $driver): self
-    {
-        trigger_deprecation('phplrt/lexer', '3.6', <<<'MSG'
-            Using "%s::setDriver(DriverInterface $driver)" is deprecated.
-            MSG, static::class);
-
-        $this->driver = $driver;
-
-        return $this;
     }
 
     public function skip(string ...$tokens): self
