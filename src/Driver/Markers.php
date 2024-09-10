@@ -24,10 +24,19 @@ class Markers extends Driver
      */
     private const UNKNOWN_PATTERN = '.+?';
 
+    /**
+     * @var non-empty-string
+     *
+     * @readonly
+     */
+    private string $unknown;
+
     public function __construct(
         ?MarkersCompiler $compiler = null,
-        private readonly string $unknown = self::UNKNOWN_TOKEN_NAME
+        string $unknown = self::UNKNOWN_TOKEN_NAME
     ) {
+        $this->unknown = $unknown;
+
         parent::__construct($compiler ?? new MarkersCompiler());
     }
 

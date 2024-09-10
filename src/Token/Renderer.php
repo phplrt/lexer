@@ -44,12 +44,15 @@ final class Renderer
 
     public function render(TokenInterface $token): string
     {
-        return match (true) {
-            $token instanceof EndOfInput => 'end of input',
-            $token instanceof UnknownToken,
-            $token->getName() === $token->getValue() => $this->value($token),
-            default => \sprintf('%s (%s)', $this->value($token), $this->name($token)),
-        };
+        switch (true) {
+            case $token instanceof EndOfInput:
+                return 'end of input';
+            case $token instanceof UnknownToken:
+            case $token->getName() === $token->getValue():
+                return $this->value($token);
+        }
+
+        return \sprintf('%s (%s)', $this->value($token), $this->name($token));
     }
 
     public function value(TokenInterface $token): string
