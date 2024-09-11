@@ -24,19 +24,10 @@ class Markers extends Driver
      */
     private const UNKNOWN_PATTERN = '.+?';
 
-    /**
-     * @var non-empty-string
-     *
-     * @readonly
-     */
-    private string $unknown;
-
     public function __construct(
         ?MarkersCompiler $compiler = null,
-        string $unknown = self::UNKNOWN_TOKEN_NAME
+        private readonly string $unknown = self::UNKNOWN_TOKEN_NAME,
     ) {
-        $this->unknown = $unknown;
-
         parent::__construct($compiler ?? new MarkersCompiler());
     }
 
@@ -59,7 +50,6 @@ class Markers extends Driver
             /** @var non-empty-string $name */
             $name = \array_pop($payload);
 
-            /** @psalm-suppress InvalidArgument */
             yield $this->make($name, $payload);
         }
     }
