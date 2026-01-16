@@ -31,19 +31,15 @@ class Lexer implements PositionalLexerInterface, MutableLexerInterface
      * Default token name for unidentified tokens.
      *
      * @var non-empty-string
-     *
-     * @final
      */
-    public const DEFAULT_UNKNOWN_TOKEN_NAME = UnknownToken::DEFAULT_TOKEN_NAME;
+    final public const DEFAULT_UNKNOWN_TOKEN_NAME = UnknownToken::DEFAULT_TOKEN_NAME;
 
     /**
      * Default token name for end of input.
      *
      * @var non-empty-string
-     *
-     * @final
      */
-    public const DEFAULT_EOI_TOKEN_NAME = EndOfInput::DEFAULT_TOKEN_NAME;
+    final public const DEFAULT_EOI_TOKEN_NAME = EndOfInput::DEFAULT_TOKEN_NAME;
 
     private DriverInterface $driver;
 
@@ -53,17 +49,9 @@ class Lexer implements PositionalLexerInterface, MutableLexerInterface
 
     private HandlerInterface $onEndOfInput;
 
-    /**
-     * @var non-empty-string
-     */
-    private readonly string $unknown;
-
     private readonly SourceFactoryInterface $sources;
 
     /**
-     * @param array<array-key, non-empty-string> $tokens list of
-     *        token names/identifiers and its patterns
-     * @param list<array-key> $skip list of hidden token names/identifiers
      * @param HandlerInterface $onUnknownToken This setting is responsible for
      *        the behavior of the lexer in case of detection of unrecognized
      *        tokens.
@@ -87,35 +75,59 @@ class Lexer implements PositionalLexerInterface, MutableLexerInterface
      *
      *        Note that you can also define your own {@see HandlerInterface} to
      *        override behavior.
-     * @param non-empty-string $unknown The identifier that marks each unknown
-     *        token inside the executor (internal runtime). This parameter only
-     *        needs to be changed if the name is already in use in the user's
-     *        token set (in the {@see $tokens} parameter), otherwise it makes
-     *        no sense.
-     * @param non-empty-string $eoi
      */
     public function __construct(
+        /**
+         * List of token names/identifiers and its patterns.
+         *
+         * @var array<array-key, non-empty-string>
+         */
         protected array $tokens = [],
+        /**
+         * List of hidden token names/identifiers.
+         *
+         * @var list<array-key>
+         */
         protected array $skip = [],
         ?DriverInterface $driver = null,
         ?HandlerInterface $onHiddenToken = null,
         ?HandlerInterface $onUnknownToken = null,
         ?HandlerInterface $onEndOfInput = null,
-        string $unknown = Lexer::DEFAULT_UNKNOWN_TOKEN_NAME,
         /**
-         * @readonly
+         * The identifier that marks each unknown token inside the executor
+         * (internal runtime). This parameter only needs to be changed if the
+         * name is already in use in the user's token set (in the {@see $tokens}
+         * parameter), otherwise it makes no sense.
+         *
+         * @var non-empty-string
          */
-        private string $eoi = Lexer::DEFAULT_EOI_TOKEN_NAME,
-        ?SourceFactoryInterface $sources = null
+        private readonly string $unknown = Lexer::DEFAULT_UNKNOWN_TOKEN_NAME,
+        /**
+         * @var non-empty-string
+         */
+        private readonly string $eoi = Lexer::DEFAULT_EOI_TOKEN_NAME,
+        ?SourceFactoryInterface $sources = null,
     ) {
         $this->driver = $driver ?? new Markers(new MarkersCompiler(), $unknown);
-        $this->unknown = $unknown;
-
         $this->onHiddenToken = $onHiddenToken ?? new NullHandler();
         $this->onUnknownToken = $onUnknownToken ?? new ThrowErrorHandler();
         $this->onEndOfInput = $onEndOfInput ?? new PassthroughHandler();
-
         $this->sources = $sources ?? new SourceFactory();
+    }
+
+    /**
+     * @deprecated since phplrt 3.6 and will be removed in 4.0. Please use
+     *             "$onUnknownToken" argument of the {@see __construct()}
+     *             or {@see Lexer::withUnknownTokenHandler()} method instead.
+     */
+    public function disableUnrecognizedTokenException(): void
+    {
+        trigger_deprecation('phplrt/lexer', '3.6', <<<'MSG'
+            Using "%s::disableUnrecognizedTokenException()" is deprecated.
+            Please use %1$s::withUnknownTokenHandler() instead.
+            MSG, static::class);
+
+        $this->onUnknownToken = new PassthroughHandler();
     }
 
     /**
@@ -167,6 +179,36 @@ class Lexer implements PositionalLexerInterface, MutableLexerInterface
         $self->onEndOfInput = $handler;
 
         return $self;
+    }
+
+    /**
+     * @deprecated since phplrt 3.6 and will be removed in 4.0.
+     *
+     * @api
+     */
+    public function getDriver(): DriverInterface
+    {
+        trigger_deprecation('phplrt/lexer', '3.6', <<<'MSG'
+            Using "%s::getDriver()" is deprecated.
+            MSG, static::class);
+
+        return $this->driver;
+    }
+
+    /**
+     * @deprecated since phplrt 3.6 and will be removed in 4.0.
+     *
+     * @api
+     */
+    public function setDriver(DriverInterface $driver): self
+    {
+        trigger_deprecation('phplrt/lexer', '3.6', <<<'MSG'
+            Using "%s::setDriver(DriverInterface $driver)" is deprecated.
+            MSG, static::class);
+
+        $this->driver = $driver;
+
+        return $this;
     }
 
     public function skip(string ...$tokens): self
@@ -277,9 +319,13 @@ class Lexer implements PositionalLexerInterface, MutableLexerInterface
                     continue;
                 }
 
-                if ($unknown !== [] && ($result = $this->handleUnknownToken($source, $unknown))) {
-                    yield $result;
-                    $unknown = [];
+                if ($unknown !== []) {
+                    $result = $this->handleUnknownToken($source, $unknown);
+
+                    if ($result !== null) {
+                        yield $result;
+                        $unknown = [];
+                    }
                 }
 
                 yield $token;
@@ -288,11 +334,17 @@ class Lexer implements PositionalLexerInterface, MutableLexerInterface
             throw LexerException::fromInternalError($e);
         }
 
-        if ($unknown !== [] && $result = $this->handleUnknownToken($source, $unknown)) {
-            yield $token = $result;
+        if ($unknown !== []) {
+            $result = $this->handleUnknownToken($source, $unknown);
+
+            if ($result !== null) {
+                yield $token = $result;
+            }
         }
 
-        if (($eoi = $this->handleEoiToken($source, $token ?? null)) !== null) {
+        $eoi = $this->handleEoiToken($source, $token ?? null);
+
+        if ($eoi !== null) {
             yield $eoi;
         }
     }
@@ -317,9 +369,7 @@ class Lexer implements PositionalLexerInterface, MutableLexerInterface
      */
     private function reduceUnknownToken(array $tokens): TokenInterface
     {
-        $concat = static function (string $data, TokenInterface $token): string {
-            return $data . $token->getValue();
-        };
+        $concat = static fn(string $data, TokenInterface $token): string => $data . $token->getValue();
 
         $value = \array_reduce($tokens, $concat, '');
 

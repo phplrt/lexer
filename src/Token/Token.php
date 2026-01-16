@@ -14,7 +14,7 @@ class Token extends BaseToken
     /**
      * @var array-key
      */
-    private string|int $name;
+    private readonly string|int $name;
 
     /**
      * @param array-key $name

@@ -26,7 +26,7 @@ class Markers extends Driver
 
     public function __construct(
         ?MarkersCompiler $compiler = null,
-        private readonly string $unknown = self::UNKNOWN_TOKEN_NAME
+        private readonly string $unknown = self::UNKNOWN_TOKEN_NAME,
     ) {
         parent::__construct($compiler ?? new MarkersCompiler());
     }
@@ -50,7 +50,6 @@ class Markers extends Driver
             /** @var non-empty-string $name */
             $name = \array_pop($payload);
 
-            /** @psalm-suppress InvalidArgument */
             yield $this->make($name, $payload);
         }
     }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer\Token;
 
+use Phplrt\Contracts\Lexer\TokenInterface;
+
 final class EndOfInput extends BaseToken
 {
     /**
@@ -16,7 +18,7 @@ final class EndOfInput extends BaseToken
      *
      * @var non-empty-string
      */
-    public const DEFAULT_TOKEN_NAME = 'T_EOI';
+    public const DEFAULT_TOKEN_NAME = TokenInterface::END_OF_INPUT;
 
     /**
      * @param int<0, max> $offset
@@ -24,7 +26,7 @@ final class EndOfInput extends BaseToken
      */
     public function __construct(
         private readonly int $offset = 0,
-        private readonly string $name = self::DEFAULT_TOKEN_NAME,
+        private readonly string|int $name = self::DEFAULT_TOKEN_NAME,
     ) {}
 
     public function getName(): string
