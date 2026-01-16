@@ -16,14 +16,14 @@
         }
     ],
     "require": {
-        "php": "^8.1",
+        "php": "^8.4",
         "ext-spl": "*",
         "ext-pcre": "*",
         "ext-json": "*",
         "ext-mbstring": "*",
-        "phplrt/source": "^3.7",
-        "phplrt/lexer-contracts": "^3.7",
-        "phplrt/exception": "^3.7",
+        "phplrt/source": "^4.0",
+        "phplrt/lexer-contracts": "^4.0",
+        "phplrt/exception": "^4.0",
         "symfony/deprecation-contracts": "^2.5|^3.0"
     },
     "autoload": {
@@ -35,10 +35,9 @@
         ]
     },
     "require-dev": {
-        "phpunit/phpunit": "^10.5|^11.0",
-        "phpstan/extension-installer": "^1.4",
-        "phpstan/phpstan": "^1.11",
-        "phpstan/phpstan-strict-rules": "^1.6"
+        "phpunit/phpunit": "^12.5",
+        "phpstan/phpstan": "^2.1.33",
+        "phpstan/phpstan-strict-rules": "^2.0"
     },
     "autoload-dev": {
         "psr-4": {
@@ -46,12 +45,12 @@
         }
     },
     "provide": {
-        "phplrt/lexer-contracts-implementation": "^3.7"
+        "phplrt/lexer-contracts-implementation": "^4.0"
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "3.x-dev",
-            "dev-main": "3.x-dev"
+            "dev-master": "4.x-dev",
+            "dev-main": "4.x-dev"
         }
     },
     "config": {
