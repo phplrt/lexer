@@ -14,7 +14,7 @@ class Composite extends Token implements CompositeTokenInterface
      * @param array<int, TokenInterface> $children
      */
     public function __construct(
-        string|int $name,
+        int|string $name,
         string $value,
         int $offset,
         private array $children,
@@ -46,9 +46,6 @@ class Composite extends Token implements CompositeTokenInterface
         return new \ArrayIterator($this->children);
     }
 
-    /**
-     * @param int $offset
-     */
     public function offsetExists(mixed $offset): bool
     {
         \assert(\is_int($offset));
@@ -56,9 +53,6 @@ class Composite extends Token implements CompositeTokenInterface
         return isset($this->children[$offset]);
     }
 
-    /**
-     * @param int $offset
-     */
     public function offsetGet(mixed $offset): ?TokenInterface
     {
         \assert(\is_int($offset));
@@ -66,10 +60,6 @@ class Composite extends Token implements CompositeTokenInterface
         return $this->children[$offset] ?? null;
     }
 
-    /**
-     * @param int $offset
-     * @param TokenInterface $value
-     */
     public function offsetSet(mixed $offset, mixed $value): void
     {
         \assert(\is_int($offset));
@@ -78,9 +68,6 @@ class Composite extends Token implements CompositeTokenInterface
         $this->children[$offset] = $value;
     }
 
-    /**
-     * @param int $offset
-     */
     public function offsetUnset(mixed $offset): void
     {
         \assert(\is_int($offset));
@@ -88,6 +75,9 @@ class Composite extends Token implements CompositeTokenInterface
         unset($this->children[$offset]);
     }
 
+    /**
+     * @return int<0, max>
+     */
     public function count(): int
     {
         return \count($this->children);

@@ -23,12 +23,14 @@ class Multistate implements PositionalLexerInterface
      */
     private array $states = [];
 
-    private readonly SourceFactoryInterface $sources;
+    private SourceFactoryInterface $sources;
 
-    private readonly HandlerInterface $onEndOfInput;
+    private HandlerInterface $onEndOfInput;
 
     /**
      * @param array<array-key, PositionalLexerInterface> $states
+     * @param array<array-key, array<non-empty-string, array-key>> $transitions
+     * @param array-key|null $state
      * @param HandlerInterface $onEndOfInput This setting is responsible for the
      *        operation of the terminal token ({@see EndOfInput}).
      *
@@ -39,14 +41,8 @@ class Multistate implements PositionalLexerInterface
      */
     public function __construct(
         array $states,
-        /**
-         * @var array<array-key, array<non-empty-string, array-key>>
-         */
         private array $transitions = [],
-        /**
-         * @var array-key|null
-         */
-        private int|string|null $state = null,
+        private string|int|null $state = null,
         ?HandlerInterface $onEndOfInput = null,
         ?SourceFactoryInterface $sources = null
     ) {
@@ -66,7 +62,7 @@ class Multistate implements PositionalLexerInterface
      *
      * @param array-key|null $state
      */
-    public function startsWith(string|int|null $state): self
+    public function startsWith(int|string|null $state): self
     {
         $this->state = $state;
 
@@ -81,8 +77,6 @@ class Multistate implements PositionalLexerInterface
      */
     public function setState(string|int $name, array|PositionalLexerInterface $data): self
     {
-        assert(\is_array($data) || $data instanceof PositionalLexerInterface);
-
         if (\is_array($data)) {
             $data = new Lexer($data);
         }
@@ -136,6 +130,8 @@ class Multistate implements PositionalLexerInterface
      * @throws LexerRuntimeExceptionInterface an exception that occurs after
      *         starting the lexical analysis and indicates problems in the
      *         analyzed source
+     *
+     * @psalm-suppress TypeDoesNotContainType
      */
     public function lex(mixed $source, int $offset = 0): iterable
     {
@@ -171,6 +167,8 @@ class Multistate implements PositionalLexerInterface
             if (!isset($this->states[$state])) {
                 /**
                  * @noinspection IssetArgumentExistenceInspection
+                 *
+                 * @psalm-suppress UndefinedVariable
                  */
                 throw UnexpectedStateException::fromState($state, $source, $token ?? null);
             }
@@ -213,6 +211,7 @@ class Multistate implements PositionalLexerInterface
                         throw EndlessRecursionException::fromState($state, $source, $token);
                     }
 
+                    /** @psalm-suppress UnusedVariable */
                     $completed = false;
 
                     continue 2;

@@ -16,9 +16,6 @@ class UnexpectedStateException extends LexerRuntimeException
         return new static($message, $src, null, $e);
     }
 
-    /**
-     * @param array-key $state
-     */
     public static function fromState(string|int $state, ReadableInterface $src, ?TokenInterface $tok, ?\Throwable $e = null): self
     {
         $message = \sprintf('Unrecognized token state #%s', $state);

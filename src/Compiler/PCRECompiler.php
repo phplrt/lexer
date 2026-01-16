@@ -175,6 +175,7 @@ abstract class PCRECompiler implements CompilerInterface
      */
     public function __construct(?array $flags = null, ?bool $debug = null)
     {
+        /** @psalm-suppress PropertyTypeCoercion */
         $this->flags = $flags ?? self::DEFAULT_FLAGS;
 
         if ($debug === null) {
@@ -268,7 +269,7 @@ abstract class PCRECompiler implements CompilerInterface
 
             @\preg_match_all($this->wrap($pattern), '', $matches, $flags);
 
-            if (($error = \error_get_last()) !== null) {
+            if ($error = \error_get_last()) {
                 throw new CompilationException($this->formatException($error['message'], $original));
             }
         }
@@ -290,8 +291,8 @@ abstract class PCRECompiler implements CompilerInterface
 
         $message = \str_replace('Compilation failed: ', '', $message);
         $message = \preg_replace('/([\w_]+\(\):\h+)/', '', $message);
-        $message = \preg_replace('/\h*at\h+offset\h+\d+/', '', (string) $message);
+        $message = \preg_replace('/\h*at\h+offset\h+\d+/', '', $message);
 
-        return \ucfirst((string) $message) . (\is_string($token) ? $suffix : '');
+        return \ucfirst($message) . (\is_string($token) ? $suffix : '');
     }
 }
