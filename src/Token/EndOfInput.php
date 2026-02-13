@@ -4,56 +4,30 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer\Token;
 
-use Phplrt\Contracts\Lexer\TokenInterface;
+use Phplrt\Contracts\Lexer\Channel;
+use Phplrt\Contracts\Lexer\ChannelInterface;
 
-final class EndOfInput extends BaseToken
+class EndOfInput extends Token
 {
-    /**
-     * @var non-empty-string
-     */
-    private const EOI_VALUE = "\0";
-
-    /**
-     * Name of the token that marks the end of the incoming data.
-     *
-     * @var non-empty-string
-     */
-    public const DEFAULT_TOKEN_NAME = TokenInterface::END_OF_INPUT;
+    private const int TOKEN_ID = -1;
+    private const string TOKEN_VALUE = '';
+    private const ChannelInterface TOKEN_CHANNEL = Channel::EndOfInput;
 
     /**
      * @param int<0, max> $offset
-     * @param array-key $name
      */
-    public function __construct(
-        private readonly int $offset = 0,
-        private readonly string|int $name = self::DEFAULT_TOKEN_NAME,
-    ) {}
-
-    public function getName(): string
+    public function __construct(int $offset)
     {
-        return $this->name;
+        parent::__construct(
+            id: self::TOKEN_ID,
+            offset: $offset,
+            value: self::TOKEN_VALUE,
+            channel: self::TOKEN_CHANNEL,
+        );
     }
 
-    public function getOffset(): int
-    {
-        return $this->offset;
-    }
-
-    public function getValue(): string
-    {
-        return self::EOI_VALUE;
-    }
-
-    public function getBytes(): int
-    {
-        return 0;
-    }
-
-    /**
-     * @return non-empty-string
-     */
     public function __toString(): string
     {
-        return '\0';
+        return '';
     }
 }
