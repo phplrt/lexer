@@ -6,64 +6,41 @@ namespace Phplrt\Lexer;
 
 use Phplrt\Contracts\Lexer\Channel;
 use Phplrt\Contracts\Lexer\ChannelInterface;
-use Phplrt\Contracts\Lexer\Exception\LexerExceptionInterface;
-use Phplrt\Contracts\Lexer\Exception\RuntimeExceptionInterface;
 use Phplrt\Contracts\Lexer\LexerInterface;
 use Phplrt\Contracts\Lexer\TokenInterface;
 use Phplrt\Contracts\Source\Factory\SourceFactoryInterface;
 use Phplrt\Contracts\Source\ReadableInterface;
-use Phplrt\Lexer\Executor\MarkersExecutor;
-use Phplrt\Lexer\Token\CustomChannel;
-use Phplrt\Lexer\Token\EndOfInput;
+use Phplrt\Lexer\Token\EndOfInputToken;
+use Phplrt\Lexer\Token\Token;
 use Phplrt\Source\SourceFactory;
 
 readonly class Lexer implements LexerInterface
 {
-    public array $transitions;
+    /**
+     * @var array<int, ChannelInterface>
+     */
+    private array $channels;
 
     private SourceFactoryInterface $sources;
 
-    private LexerInterface $executor;
-
-    /**
-     * @var array<non-empty-string, LexerInterface>
-     */
-    private array $states;
-
     public function __construct(
-        LexerCreateInfo $config,
+        private LexerCreateInfo $config,
         ?SourceFactoryInterface $sources = null,
     ) {
         $this->sources = $sources ?? SourceFactory::default();
-
-        $channels = $this->createChannelInstances($config);
-
-        $this->executor = $this->createExecutor($config, $channels);
-        $this->transitions = $config->transitions;
-        $this->states = $config->states;
-    }
-
-    /**
-     * @param array<non-empty-string, ChannelInterface> $channels
-     */
-    private function createExecutor(LexerCreateInfo $config, array $channels): LexerInterface
-    {
-        return new MarkersExecutor(
-            config: $config,
-            channels: $this->mapTokenIdToChannel($config, $channels),
-        );
+        $this->channels = $this->mapTokenIdToChannel($config);
     }
 
     /**
      * Gets the lexer configuration and initializes the mapping of tokens to channels.
      *
-     * @param array<non-empty-string, ChannelInterface> $channels
-     *
      * @return array<int, ChannelInterface>
      */
-    private function mapTokenIdToChannel(LexerCreateInfo $config, array $channels): array
+    private function mapTokenIdToChannel(LexerCreateInfo $config): array
     {
         $result = [];
+
+        $channels = $this->createChannelInstances($config);
 
         foreach ($config->channels as $tokenId => $channelName) {
             $result[$tokenId] = $channels[$channelName];
@@ -87,70 +64,120 @@ readonly class Lexer implements LexerInterface
             }
 
             $result[$channelName] = Channel::tryFrom($channelName)
-                ?? new CustomChannel($channelName);
+                ?? $this->createCustomChannel($channelName);
         }
 
         return $result;
     }
 
     /**
-     * @param int<0, max> $offset
-     *
-     * @return iterable<array-key, TokenInterface>
-     * @throws LexerExceptionInterface
-     * @throws RuntimeExceptionInterface
+     * @param non-empty-string $name
      */
-    private function executeStateless(ReadableInterface $source, int $offset): iterable
+    private function createCustomChannel(string $name): ChannelInterface
     {
-        return $this->executor->lex($source, $offset);
+        return new readonly class ($name) implements ChannelInterface {
+            public function __construct(
+                /**
+                 * @var non-empty-string
+                 */
+                public string $value,
+            ) {}
+        };
+    }
+
+    final public function lex(mixed $source, int $offset = 0): iterable
+    {
+        $readable = $this->sources->create($source);
+
+        return $this->execute($readable, $offset);
     }
 
     /**
-     * @param int<0, max> $offset
-     *
      * @return iterable<array-key, TokenInterface>
-     * @throws LexerExceptionInterface
-     * @throws RuntimeExceptionInterface
      */
-    private function executeStateful(ReadableInterface $source, int $offset): iterable
+    private function execute(ReadableInterface $source, int $offset): iterable
     {
-        $states = $this->states;
-        $executor = $this->executor;
-        $transitions = $executor->transitions;
+        if ($offset < 0) {
+            throw new \InvalidArgumentException('Offset cannot be negative');
+        }
 
-        $completed = false;
+        $content = $source->content;
+
+        \preg_match_all($this->config->pattern, $content, $matches, 0, $offset);
+
+        if (!isset($matches['MARK'])) {
+            return [new EndOfInputToken($source, $offset)];
+        }
+
+        /**
+         * PHP stack optimization:
+         *
+         * Dereference found variables speeds up access to the
+         * "hot" variables memory addresses.
+         */
+        $foundValues = $matches[0];
+        $foundNames = $matches['MARK'];
+
+        /**
+         * PHP stack optimization:
+         *
+         * Import "hot" variables from object properties, which will
+         * reduce the number of hops to access the memory address.
+         */
+        $names = $this->config->names;
+        $channels = $this->channels;
+
+        $prototype = new Token(
+            id: -1,
+            name: null,
+            channel: Channel::DEFAULT,
+            source: $source,
+            value: '',
+            offset: $offset,
+        );
+
+        /**
+         * PHP memory deoptimization:
+         * - Like `$result = \array_fill(0, \count($foundNames) + 1, null);`
+         * - Or `$result = new \SplFixedArray(\count($foundNames) + 1);`
+         *
+         * Allocating memory in advance to the required size
+         * DOES NOT significantly affect performance,
+         * but it complicates code maintenance.
+         */
         $result = [];
 
-        do {
-            /** @var TokenInterface $token */
-            foreach ($executor->lex($source, $offset) as $token) {
-                if ($token->channel === Channel::EndOfInput) {
-                    $completed = true;
-                    break;
-                }
+        foreach ($foundNames as $index => $alias) {
+            /**
+             * Clone optimization: speeds up the creation of a new object:
+             * faster than instantiation.
+             */
+            $token = clone $prototype;
 
-                $result[] = $token;
+            $id = (int) $alias;
+            $name = null;
+            $value = $foundValues[$index];
+            $length = \strlen($value);
 
-                if (\array_key_exists($token->id, $transitions)) {
-                    $executor = $states[$transitions[$token->id]];
-                    $transitions = $executor->transitions;
-                }
+            if (isset($names[$id])) {
+                $name = $names[$id];
             }
-        } while (!$completed);
 
-        $result[] = $token ?? new EndOfInput(0);
+            $token->id = $id;           // @phpstan-ignore property.readOnlyByPhpDocAssignOutOfClass
+            $token->name = $name;       // @phpstan-ignore property.readOnlyByPhpDocAssignOutOfClass
+            $token->offset = $offset;   // @phpstan-ignore property.readOnlyByPhpDocAssignOutOfClass
+            $token->value = $value;     // @phpstan-ignore property.readOnlyByPhpDocAssignOutOfClass
 
-        return $result;
-    }
+            if (isset($channels[$id])) {
+                $token->channel = $channels[$id];   // @phpstan-ignore property.readOnlyByPhpDocAssignOutOfClass
+            }
 
-    public function lex(mixed $source, int $offset = 0): iterable
-    {
-        $source = $this->sources->create($source);
-
-        if (\count($this->states) === 0) {
-            return $this->executeStateless($source, $offset);
+            $result[] = $token;
+            $offset += $length;
         }
 
-        return $this->executeStateful($source, $offset);
+        $result[] = new EndOfInputToken($source, $offset);
+
+        return $result;
     }
 }
