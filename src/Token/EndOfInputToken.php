@@ -6,7 +6,6 @@ namespace Phplrt\Lexer\Token;
 
 use Phplrt\Contracts\Lexer\Channel;
 use Phplrt\Contracts\Lexer\ChannelInterface;
-use Phplrt\Contracts\Source\ReadableInterface;
 
 class EndOfInputToken extends Token
 {
@@ -27,14 +26,12 @@ class EndOfInputToken extends Token
      * @param int<0, max> $offset
      */
     public function __construct(
-        ReadableInterface $source,
         int $offset,
     ) {
         parent::__construct(
             id: self::TOKEN_ID,
             name: self::TOKEN_CHANNEL->value,
             channel: self::TOKEN_CHANNEL,
-            source: $source,
             value: '',
             offset: $offset,
         );
