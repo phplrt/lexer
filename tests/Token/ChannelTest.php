@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer\Tests\Token;
 
-use Phplrt\Compiler\Lexer\LexerBuilder;
+use Phplrt\Lexer\Builder\LexerBuilder;
 use Phplrt\Contracts\Lexer\Channel;
 use Phplrt\Contracts\Lexer\ChannelInterface;
 use Phplrt\Contracts\Lexer\LexerInterface;
@@ -19,9 +19,9 @@ final class ChannelTest extends TestCase
     private static function createAnnotatedLexer(): LexerInterface
     {
         return self::lexer(static function (LexerBuilder $lexer): void {
-            $lexer->match('\s++', 'T_WHITESPACE')->setHidden();
-            $lexer->match('##[^\n]*+', 'T_DOC')->setChannel('documentation');
-            $lexer->match('[a-zA-Z_]\w*+', 'T_NAME');
+            $lexer->addPattern('\s++', 'T_WHITESPACE')->setHidden();
+            $lexer->addPattern('##[^\n]*+', 'T_DOC')->setChannel('documentation');
+            $lexer->addPattern('[a-zA-Z_]\w*+', 'T_NAME');
         });
     }
 
@@ -72,7 +72,7 @@ final class ChannelTest extends TestCase
         $channels = self::channels($lexer->lex($source));
 
         self::assertArrayHasKey('T_DOC', $channels);
-        self::assertSame('documentation', $channels['T_DOC']->value);
+        self::assertSame('documentation', $channels['T_DOC']->name);
         self::assertNotInstanceOf(Channel::class, $channels['T_DOC']);
     }
 
@@ -84,15 +84,15 @@ final class ChannelTest extends TestCase
         $first = self::channels($lexer->lex('## one'));
         $second = self::channels($lexer->lex('## two'));
 
-        self::assertSame($first['T_DOC']->value, $second['T_DOC']->value);
+        self::assertSame($first['T_DOC']->name, $second['T_DOC']->name);
     }
 
     #[TestDox('An unreadable fragment is reported on the unknown channel')]
     public function testUnrecognizedFragmentIsMarkedAsUnknown(): void
     {
         $lexer = self::lexer(static function (LexerBuilder $lexer): void {
-            $lexer->match('\s++', 'T_WHITESPACE')->setHidden();
-            $lexer->match('\d++', 'T_NUMBER');
+            $lexer->addPattern('\s++', 'T_WHITESPACE')->setHidden();
+            $lexer->addPattern('\d++', 'T_NUMBER');
         });
         $source = '42 ???';
 

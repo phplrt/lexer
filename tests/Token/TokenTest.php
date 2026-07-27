@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer\Tests\Token;
 
-use Phplrt\Compiler\Lexer\LexerBuilder;
+use Phplrt\Lexer\Builder\LexerBuilder;
 use Phplrt\Contracts\Lexer\Channel;
 use Phplrt\Contracts\Lexer\LexerInterface;
 use Phplrt\Contracts\Lexer\TokenInterface;
@@ -66,8 +66,8 @@ final class TokenTest extends TestCase
     private static function createNamesLexer(): LexerInterface
     {
         return self::lexer(static function (LexerBuilder $lexer): void {
-            $lexer->match('\s++', 'T_WHITESPACE')->setHidden();
-            $lexer->match('[a-z]++', 'T_NAME');
+            $lexer->addPattern('\s++', 'T_WHITESPACE')->setHidden();
+            $lexer->addPattern('[a-z]++', 'T_NAME');
         });
     }
 }

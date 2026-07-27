@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer\Tests;
 
-use Phplrt\Compiler\Lexer\LexerBuilder;
+use Phplrt\Lexer\Builder\LexerBuilder;
 use Phplrt\Contracts\Lexer\Channel;
 use Phplrt\Contracts\Lexer\LexerInterface;
 use PHPUnit\Framework\Attributes\Group;
@@ -16,9 +16,9 @@ final class OffsetTest extends TestCase
     private static function createWordsLexer(): LexerInterface
     {
         return self::lexer(static function (LexerBuilder $lexer): void {
-            $lexer->match('\s++', 'T_WHITESPACE')->setHidden();
-            $lexer->match('\d++', 'T_NUMBER');
-            $lexer->match('[a-zA-Z_]\w*+', 'T_NAME');
+            $lexer->addPattern('\s++', 'T_WHITESPACE')->setHidden();
+            $lexer->addPattern('\d++', 'T_NUMBER');
+            $lexer->addPattern('[a-zA-Z_]\w*+', 'T_NAME');
         });
     }
 
@@ -32,7 +32,7 @@ final class OffsetTest extends TestCase
 
         self::assertSame([
             'T_NAME(three)@8',
-            'eoi()@13',
+            'EndOfInput()@13',
         ], $actual);
     }
 
