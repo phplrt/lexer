@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer\Tests;
 
-use Phplrt\Lexer\Builder\LexerBuilder;
 use Phplrt\Contracts\Lexer\Exception\LexerExceptionInterface;
 use Phplrt\Contracts\Lexer\Exception\RuntimeExceptionInterface;
 use Phplrt\Contracts\Lexer\LexerInterface;
+use Phplrt\Lexer\Builder\LexerBuilder;
+use Phplrt\Source\Source;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\TestDox;
 
@@ -28,7 +29,7 @@ final class ErrorReportingTest extends TestCase
 
         $this->expectException(RuntimeExceptionInterface::class);
 
-        \iterator_to_array($lexer->lex('first second'), false);
+        \iterator_to_array($lexer->lex(new Source('first second')), false);
     }
 
     #[TestDox('A reported error is a lexer exception')]
@@ -38,7 +39,7 @@ final class ErrorReportingTest extends TestCase
 
         $this->expectException(LexerExceptionInterface::class);
 
-        \iterator_to_array($lexer->lex('first second'), false);
+        \iterator_to_array($lexer->lex(new Source('first second')), false);
     }
 
     #[TestDox('A reported error points at the unreadable fragment')]
@@ -47,7 +48,7 @@ final class ErrorReportingTest extends TestCase
         $lexer = self::createIncompleteLexer();
 
         try {
-            \iterator_to_array($lexer->lex('first second'), false);
+            \iterator_to_array($lexer->lex(new Source('first second')), false);
         } catch (RuntimeExceptionInterface $e) {
             self::assertSame(5, $e->token->offset);
 
@@ -62,7 +63,7 @@ final class ErrorReportingTest extends TestCase
     {
         $lexer = self::createIncompleteLexer();
 
-        $tokens = \iterator_to_array($lexer->lex('word'), false);
+        $tokens = \iterator_to_array($lexer->lex(new Source('word')), false);
 
         self::assertCount(2, $tokens);
     }
@@ -76,7 +77,7 @@ final class ErrorReportingTest extends TestCase
         });
         $source = 'abc 123 def';
 
-        self::assertTokensCoverSource($source, $lexer->lex($source));
+        self::assertTokensCoverSource($source, $lexer->lex(new Source($source)));
     }
 
     #[TestDox('A failure that happens inside a state is reported as well')]
@@ -86,13 +87,13 @@ final class ErrorReportingTest extends TestCase
             $lexer->addPattern('[a-z]++', 'T_NAME');
             $lexer->addValue('"', 'T_STRING_BEGIN')->enter('string');
 
-            $string = $lexer->addState('string');
+            $string = $lexer->addLexer('string');
             $string->addValue('"', 'T_STRING_END')->exit();
             $string->addPattern('[a-z]++', 'T_STRING_CHARS');
         });
 
         $this->expectException(RuntimeExceptionInterface::class);
 
-        \iterator_to_array($lexer->lex('"abc def"'), false);
+        \iterator_to_array($lexer->lex(new Source('"abc def"')), false);
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Phplrt\Lexer\Exception;
 
 use Phplrt\Contracts\Lexer\TokenInterface;
+use Phplrt\Contracts\Source\ReadableInterface;
 
 /**
  * Occurs when the lexer is unable to recognize the input at a given offset.
@@ -14,22 +15,13 @@ use Phplrt\Contracts\Lexer\TokenInterface;
  */
 final class UnrecognizedTokenException extends LexerRuntimeException
 {
-    public static function becauseInputIsUnrecognized(TokenInterface $token): self
-    {
-        return new self($token, \sprintf(
-            'Unrecognized %s at offset %d',
-            $token,
-            $token->offset,
-        ));
-    }
+    public static function becauseInputIsUnrecognized(
+        ReadableInterface $source,
+        TokenInterface $token,
+        ?\Throwable $previous = null,
+    ): self {
+        $message = \sprintf('Unrecognized %s', $token);
 
-    public static function becausePcreErrorOccurs(TokenInterface $token, string $error): self
-    {
-        return new self($token, \sprintf(
-            'A PCRE error (%s) occurred while reading %s at offset %d',
-            $error,
-            $token,
-            $token->offset,
-        ));
+        return new self($source, $token, $message, previous: $previous);
     }
 }
