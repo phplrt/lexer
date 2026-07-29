@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Phplrt\Lexer\Internal;
 
-use Phplrt\Contracts\Lexer\Channel;
-use Phplrt\Contracts\Lexer\ChannelInterface;
 use Phplrt\Contracts\Source\ReadableInterface;
 use Phplrt\Lexer\Exception\EmptyTokenException;
 use Phplrt\Lexer\Exception\PcreErrorException;
@@ -32,21 +30,28 @@ final readonly class Tokenizer
      */
     private const int ERROR_FRAGMENT_LENGTH = 64;
 
+    /**
+     * Stands in for the tokens the configuration says nothing about.
+     */
+    private Token $fallback;
+
     public function __construct(
         /**
          * @var non-empty-string
          */
         private string $pattern,
         /**
-         * @var array<int, ChannelInterface>
+         * A ready-made token per token ID, cloned and filled in while reading.
+         *
+         * @var array<int, Token>
          */
-        private array $channels,
-        /**
-         * @var array<int, non-empty-string>
-         */
-        private array $names,
+        private array $prototypes,
         /**
          * A set of token IDs the analysis must stop after.
+         *
+         * This is a separate set rather than the transitions it was built from,
+         * because a transition that ends the reading carries no lexer, so
+         * "isset()" over the transitions themselves would miss it.
          *
          * @var array<int, true>
          */
@@ -58,7 +63,9 @@ final readonly class Tokenizer
          * @var array<int, int<1, max>>
          */
         private array $subgroups = [],
-    ) {}
+    ) {
+        $this->fallback = TokenPrototypeLoader::createFallbackPrototype();
+    }
 
     /**
      * Appends every token it reads to the given list, stopping as soon as a
@@ -100,8 +107,8 @@ final readonly class Tokenizer
          * Import "hot" variables from object properties, which will
          * reduce the number of hops to access the memory address.
          */
-        $names = $this->names;
-        $channels = $this->channels;
+        $prototypes = $this->prototypes;
+        $fallback = $this->fallback;
         $breaks = $this->breaks;
         $subgroups = $this->subgroups;
 
@@ -112,40 +119,23 @@ final readonly class Tokenizer
          */
         $isBreakable = $breaks !== [];
 
-        $prototype = new Token(
-            id: -1,
-            name: null,
-            channel: Channel::DEFAULT,
-            value: '',
-            offset: $offset,
-        );
-
         foreach ($foundNames as $index => $alias) {
-            /**
-             * Clone optimization: speeds up the creation of a new object:
-             * faster than instantiation.
-             */
-            $token = clone $prototype;
-
             $id = (int) $alias;
             $value = $foundValues[$index];
             $length = \strlen($value);
 
+            /**
+             * Clone optimization: speeds up the creation of a new object:
+             * faster than instantiation.
+             *
+             * The prototype already carries the name and the channel, so only
+             * what was actually found in the source is written below.
+             */
+            $token = clone ($prototypes[$id] ?? $fallback);
+
             $token->id = $id;           // @phpstan-ignore property.readOnlyByPhpDocAssignOutOfClass
             $token->offset = $offset;   // @phpstan-ignore property.readOnlyByPhpDocAssignOutOfClass
             $token->value = $value;     // @phpstan-ignore property.readOnlyByPhpDocAssignOutOfClass
-
-            /**
-             * The prototype is nameless and belongs to the default channel, so
-             * only the tokens that are not, pay for the writing.
-             */
-            if (isset($names[$id])) {
-                $token->name = $names[$id];         // @phpstan-ignore property.readOnlyByPhpDocAssignOutOfClass
-            }
-
-            if (isset($channels[$id])) {
-                $token->channel = $channels[$id];   // @phpstan-ignore property.readOnlyByPhpDocAssignOutOfClass
-            }
 
             if ($length === 0) {
                 throw EmptyTokenException::becauseTokenIsEmpty($source, $token);
